@@ -1,0 +1,45 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: 1234
+    url: jdbc:mysql://localhost:3307/chatapp?useSSL=false&serverTimezone=UTC&characterEncoding=utf-8&allowPublicKeyRetrieval=true
+  data:
+    redis:
+      host: localhost
+      port: 16379
+      database: 0
+      connect-timeout: 10000
+      timeout: 10000
+  alioss:
+    endpoint: oss-cn-beijing.aliyuncs.com
+    access-key-id: LTAI5tHPZn9gwzxD5n9V81vx
+    access-key-secret: b2GY62XDIYYqv2QusAIRvBSqdPJt2y
+    bucket-name: sky-wanzimo
+
+
+server:
+  port: 8085
+
+#mybatis
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    #log
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    #camel
+    map-underscore-to-camel-case: true
+
+chatapp:
+  jwt:
+    # 设置jwt签名加密时使用的秘钥
+    admin-secret-key: yuntianChatAppAdminSecretKeyForHS256AlgorithmSecurity2024
+    # 设置jwt过期时间
+    admin-ttl: 7200000
+    # 设置前端传递过来的令牌名称
+    admin-token-name: token
+    user-secret-key: yuntianChatAppAdminSecretKeyForHS256AlgorithmSecurity2024
+    user-ttl: 7200000
+    user-token-name: user-token
+
+
