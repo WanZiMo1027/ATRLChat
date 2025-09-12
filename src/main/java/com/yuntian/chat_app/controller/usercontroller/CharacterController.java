@@ -22,7 +22,7 @@ public class CharacterController {
     @RequestMapping("/add")
     public Result addCharacter(@RequestBody Character character){
         characterService.addCharacter(character);
-        return Result.success();
+        return Result.success(character.getId());
     }
 
     

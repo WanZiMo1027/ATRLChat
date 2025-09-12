@@ -5,6 +5,7 @@ import com.yuntian.chat_app.entity.Character;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Update;
 
 @Mapper
 public interface CharacterMapper {
@@ -19,4 +20,11 @@ public interface CharacterMapper {
      */
     int updateImage(@Param("characterId") Long characterId,
                     @Param("imageUrl") String imageUrl);
+
+    /**
+     * 根据ID更新角色信息
+     * @param character 角色对象
+     */
+    @Update("update `character` set image=#{image} where id=#{id}")
+    void updateById(Character character);
 }

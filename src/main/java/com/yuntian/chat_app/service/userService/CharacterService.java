@@ -19,4 +19,11 @@ public interface CharacterService {
      * @param imageUrl 头像URL
      */
     void updateCharacterImage(Long characterId, String imageUrl);
+
+    /**
+     * 获取角色头像
+     * @param characterId 角色ID
+     * @return 头像URL
+     */
+    void updateCharacterAvatar(Long characterId, String imageUrl);
 }

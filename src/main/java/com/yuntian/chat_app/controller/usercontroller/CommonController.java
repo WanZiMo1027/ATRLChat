@@ -1,6 +1,7 @@
 package com.yuntian.chat_app.controller.usercontroller;
 
 import com.yuntian.chat_app.result.Result;
+import com.yuntian.chat_app.service.userService.CharacterService;
 import com.yuntian.chat_app.utils.AliOssUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,11 +16,13 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/user/common")
-
 @Slf4j
 public class CommonController {
     @Autowired
     private AliOssUtil aliOssUtil;
+
+    @Autowired
+    private CharacterService characterService; // 新增：注入角色服务
 
     /**
      * 文件上传
@@ -30,11 +33,9 @@ public class CommonController {
     public Result<String> upload(MultipartFile file){
         log.info("文件上传：{}", file.getOriginalFilename());
         try {
-            String originalFilename = file.getOriginalFilename(); //获取原始文件名
-            //截取文件后缀
+            String originalFilename = file.getOriginalFilename();
             String extension = originalFilename.substring(originalFilename.lastIndexOf("."));
             String objectName = UUID.randomUUID().toString() + extension;
-            //文件请求路径
             String filePath = aliOssUtil.upload(file.getBytes(), objectName);
             log.info("文件上传成功：{}", filePath);
             return Result.success(filePath);
@@ -76,12 +77,18 @@ public class CommonController {
             // 上传到OSS
             String imageUrl = aliOssUtil.upload(file.getBytes(), objectName);
 
+            // 新增：更新数据库中的角色头像URL
+            characterService.updateCharacterAvatar(characterId, imageUrl);
+
             log.info("角色头像上传成功，角色ID：{}，URL：{}", characterId, imageUrl);
             return Result.success(imageUrl);
 
         } catch (IOException e) {
             log.error("角色头像上传失败：{}", e.getMessage(), e);
             return Result.error("头像上传失败");
+        } catch (Exception e) {
+            log.error("更新角色头像URL失败：{}", e.getMessage(), e);
+            return Result.error("头像上传成功但保存失败");
         }
     }
 }

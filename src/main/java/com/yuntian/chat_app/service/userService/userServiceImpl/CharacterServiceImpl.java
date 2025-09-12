@@ -2,6 +2,7 @@
 package com.yuntian.chat_app.service.userService.userServiceImpl;
 
 import cn.hutool.json.JSONUtil;
+import com.yuntian.chat_app.context.BaseContext;
 import com.yuntian.chat_app.entity.Character;
 import com.yuntian.chat_app.mapper.userMapper.CharacterMapper;
 import com.yuntian.chat_app.service.userService.CharacterService;
@@ -30,6 +31,16 @@ public class CharacterServiceImpl implements CharacterService {
     @Override
     @Transactional
     public void addCharacter(Character character) {
+        // 从ThreadLocal中获取当前用户ID并设置到角色对象中
+        Long currentUserId = BaseContext.getCurrentId();
+        log.info("当前用户ID：{}",currentUserId);
+        if (currentUserId != null) {
+            character.setUserId(currentUserId);
+            log.info("设置用户ID到角色对象，用户ID：{}", currentUserId);
+        } else {
+            log.error("无法获取当前用户ID，ThreadLocal中用户ID为空");
+            throw new RuntimeException("用户未登录或会话已过期");
+        }
         log.info("新增角色，角色名称：{}", character.getName());
 
         try {
@@ -64,6 +75,7 @@ public class CharacterServiceImpl implements CharacterService {
         }
     }
 
+
     @Override
     @Transactional
     public void updateCharacterImage(Long characterId, String imageUrl) {
@@ -88,6 +100,16 @@ public class CharacterServiceImpl implements CharacterService {
             throw new RuntimeException("更新角色头像失败：" + e.getMessage());
         }
     }
+
+    @Override
+    public void updateCharacterAvatar(Long characterId, String imageUrl) {
+        Character character = new Character();
+        character.setId(characterId);
+        character.setImage(imageUrl);
+        characterMapper.updateById(character);
+        log.info("角色头像URL已更新，角色ID：{}，URL：{}", characterId, imageUrl);
+    }
+
     /**
      * 更新Redis中的角色头像
      */

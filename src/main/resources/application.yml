@@ -40,6 +40,6 @@ chatapp:
     admin-token-name: token
     user-secret-key: yuntianChatAppAdminSecretKeyForHS256AlgorithmSecurity2024
     user-ttl: 7200000
-    user-token-name: user-token
+    user-token-name: token
 
 

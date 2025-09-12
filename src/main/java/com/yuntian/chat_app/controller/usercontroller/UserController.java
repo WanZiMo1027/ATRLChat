@@ -27,21 +27,29 @@ public class UserController {
     @Autowired
     private JwtProperties jwtProperties;
 
-    //登录接口
     @RequestMapping("/login")
-    public Result<UserLoginVo> userLogin(@RequestBody User user){
+    public Result<UserLoginVo> userLogin(@RequestBody User loginReq) {
+        log.info("userLogin: {}", loginReq);
 
-        log.info("userLogin:{}",user);
-        userService.login(user);
+        // 使用 service 返回的数据库用户对象
+        User dbUser = userService.login(loginReq);
 
-        HashMap<String,Object> claim = new HashMap<>();
-        claim.put("id",user.getId());
-        String token = JwtUtil.createJWT(jwtProperties.getUserSecretKey(),jwtProperties.getUserTtl(),claim);
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("id", dbUser.getId());
+        claims.put("username", dbUser.getUsername()); // 可选但推荐，便于前端展示
+
+        String token = JwtUtil.createJWT(
+                jwtProperties.getUserSecretKey(),
+                jwtProperties.getUserTtl(),
+                claims
+        );
+
         UserLoginVo loginVo = UserLoginVo.builder()
-                .id(user.getId())
+                .id(dbUser.getId())
+                .username(dbUser.getUsername())
                 .token(token)
                 .build();
-        return Result.success(loginVo);
 
+        return Result.success(loginVo);
     }
 }
