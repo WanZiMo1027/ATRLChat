@@ -36,4 +36,11 @@ public interface CharacterMapper {
      * @return 角色列表
      */
     List<Character> selectByUserId(@Param("userId") Long userId);
+
+    /**
+     * 根据ID查询角色详情
+     * @param id 角色ID
+     * @return 角色对象
+     */
+    Character selectById(@Param("id") Long id);
 }

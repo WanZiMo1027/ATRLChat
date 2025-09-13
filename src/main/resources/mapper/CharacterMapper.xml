@@ -39,5 +39,10 @@
         WHERE user_id = #{userId} AND is_deleted = 0
         ORDER BY create_time DESC
     </select>
-
+    <!-- 根据ID查询角色详情 -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT id, name, image, appearance, background, personality, classic_lines
+        FROM `character`
+        WHERE id = #{id} AND is_deleted = 0
+    </select>
 </mapper>

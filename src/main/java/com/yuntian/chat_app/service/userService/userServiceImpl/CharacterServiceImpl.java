@@ -167,4 +167,29 @@ public class CharacterServiceImpl implements CharacterService {
             log.error("更新角色到Redis失败：{}", e.getMessage(), e);
         }
     }
+
+    @Override
+    public Character getCharacterById(Long id) {
+        log.info("获取角色详情，角色ID：{}", id);
+
+        // 先尝试从Redis缓存获取
+        String characterKey = CHARACTER_REDIS_KEY + id;
+        String characterJson = stringRedisTemplate.opsForValue().get(characterKey);
+
+        if (characterJson != null) {
+            log.info("从Redis缓存获取角色详情，角色ID：{}", id);
+            return JSONUtil.toBean(characterJson, Character.class);
+        }
+
+        // 从数据库查询
+        Character character = characterMapper.selectById(id);
+        if (character != null) {
+            // 将查询结果缓存到Redis
+            stringRedisTemplate.opsForValue().set(characterKey,
+                    JSONUtil.toJsonStr(character), 7, TimeUnit.DAYS);
+            log.info("从数据库获取角色详情并缓存到Redis，角色ID：{}", id);
+        }
+
+        return character;
+    }
 }

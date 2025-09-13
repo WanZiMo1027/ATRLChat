@@ -34,4 +34,11 @@ public interface CharacterService {
      * @return 角色列表
      */
     List<Character> getCharacterList();
+
+    /**
+     * 根据ID获取角色详情
+     * @param id 角色ID
+     * @return 角色对象
+     */
+    Character getCharacterById(Long id);
 }

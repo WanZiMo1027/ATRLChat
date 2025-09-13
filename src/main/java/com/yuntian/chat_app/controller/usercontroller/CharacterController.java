@@ -5,10 +5,7 @@ import com.yuntian.chat_app.entity.Character;
 import com.yuntian.chat_app.result.Result;
 import com.yuntian.chat_app.service.userService.CharacterService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.List;
@@ -42,6 +39,18 @@ public class CharacterController {
         return Result.success(response);
     }
 
-    
+    /**
+     * 获取角色详情
+     * @param id 角色ID
+     * @return 角色详情
+     */
+    @GetMapping("/{id}")
+    public Result getCharacterById(@PathVariable Long id) {
+        Character character = characterService.getCharacterById(id);
+        if (character == null) {
+            return Result.error("角色不存在");
+        }
+        return Result.success(character);
+    }
 
 }
