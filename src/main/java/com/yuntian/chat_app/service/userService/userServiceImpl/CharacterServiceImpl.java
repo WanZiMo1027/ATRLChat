@@ -12,6 +12,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -110,6 +111,17 @@ public class CharacterServiceImpl implements CharacterService {
         log.info("角色头像URL已更新，角色ID：{}，URL：{}", characterId, imageUrl);
     }
 
+    @Override
+    public List<Character> getCharacterList() {
+        Long currentUserId = BaseContext.getCurrentId();
+        if (currentUserId == null) {
+            log.error("无法获取当前用户ID");
+            throw new RuntimeException("用户未登录");
+        }
+
+        log.info("获取用户角色列表，用户ID：{}", currentUserId);
+        return characterMapper.selectByUserId(currentUserId);
+    }
     /**
      * 更新Redis中的角色头像
      */

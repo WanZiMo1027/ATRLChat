@@ -4,6 +4,8 @@ package com.yuntian.chat_app.service.userService;
 import com.yuntian.chat_app.entity.Character;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public interface CharacterService {
 
@@ -26,4 +28,10 @@ public interface CharacterService {
      * @return 头像URL
      */
     void updateCharacterAvatar(Long characterId, String imageUrl);
+
+    /**
+     * 获取当前用户的角色列表
+     * @return 角色列表
+     */
+    List<Character> getCharacterList();
 }

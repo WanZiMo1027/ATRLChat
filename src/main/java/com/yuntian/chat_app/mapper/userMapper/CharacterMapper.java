@@ -7,6 +7,8 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Update;
 
+import java.util.List;
+
 @Mapper
 public interface CharacterMapper {
 
@@ -27,4 +29,11 @@ public interface CharacterMapper {
      */
     @Update("update `character` set image=#{image} where id=#{id}")
     void updateById(Character character);
+
+    /**
+     * 获取当前用户的所有角色列表
+     * @param userId 用户ID
+     * @return 角色列表
+     */
+    List<Character> selectByUserId(@Param("userId") Long userId);
 }

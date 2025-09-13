@@ -32,5 +32,12 @@
         SET image = #{imageUrl}, update_time = NOW()
         WHERE id = #{characterId} AND is_deleted = 0
     </update>
+    <!-- 根据用户ID查询角色列表 -->
+    <select id="selectByUserId" resultMap="BaseResultMap">
+        SELECT id, name, image, appearance
+        FROM `character`
+        WHERE user_id = #{userId} AND is_deleted = 0
+        ORDER BY create_time DESC
+    </select>
 
 </mapper>
