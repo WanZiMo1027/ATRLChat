@@ -43,4 +43,9 @@ public interface CharacterService {
     Character getCharacterById(Long id);
 
 
+    /**
+     * 获取所有角色列表（公开模型）
+     * @return 角色列表
+     */
+    List<Character> getPublicCharacter();
 }

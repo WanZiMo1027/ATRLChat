@@ -209,6 +209,11 @@ public class CharacterServiceImpl implements CharacterService {
         return character;
     }
 
+    @Override
+    public List<Character> getPublicCharacter() {
+        return characterMapper.selectAll();
+    }
+
     /**
      * 获取所有角色列表（公开模型）
      * @return 角色列表

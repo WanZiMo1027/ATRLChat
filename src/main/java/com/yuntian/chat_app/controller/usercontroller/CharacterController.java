@@ -28,6 +28,10 @@ public class CharacterController {
     }
 
 
+    /**
+     * 我的模型角色列表
+     * @return
+     */
     @GetMapping("/List")
     public Result getCharacterList(){
         List<Character> characters = characterService.getCharacterList();
@@ -37,6 +41,15 @@ public class CharacterController {
         response.put("characters", characters);
 
         return Result.success(response);
+    }
+
+    /**角色广场
+     *
+     */
+    @GetMapping("/square")
+    public Result getCharacterSquare(){
+        List<Character> characters = characterService.getPublicCharacter();
+        return Result.success(characters);
     }
 
     /**

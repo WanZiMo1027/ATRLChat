@@ -22,7 +22,7 @@ public class CommonController {
     private AliOssUtil aliOssUtil;
 
     @Autowired
-    private CharacterService characterService; // 新增：注入角色服务
+    private CharacterService characterService;
 
     /**
      * 文件上传
