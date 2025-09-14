@@ -5,6 +5,7 @@
     <resultMap id="BaseResultMap" type="com.yuntian.chat_app.entity.Character">
         <id column="id" property="id" jdbcType="BIGINT"/>
         <result column="name" property="name" jdbcType="VARCHAR"/>
+        <result column="image" property="image" jdbcType="VARCHAR"/>
         <result column="appearance" property="appearance" jdbcType="LONGVARCHAR"/>
         <result column="background" property="background" jdbcType="LONGVARCHAR"/>
         <result column="personality" property="personality" jdbcType="LONGVARCHAR"/>
@@ -20,10 +21,10 @@
             useGeneratedKeys="true" keyProperty="id">
         INSERT INTO `character` (
             name, appearance, background, personality, classic_lines, user_id,image,
-            create_time, update_time, is_deleted
+            create_time, update_time, is_deleted, is_public
         ) VALUES (
                      #{name}, #{appearance}, #{background}, #{personality}, #{classicLines}, #{userId},#{image},
-                     NOW(), NOW(), 0
+                     NOW(), NOW(), 0,0
                  )
     </insert>
     <!-- 更新角色头像 -->
@@ -44,5 +45,11 @@
         SELECT id, name, image, appearance, background, personality, classic_lines
         FROM `character`
         WHERE id = #{id} AND is_deleted = 0
+    </select>
+    <!-- 获取所有角色列表（公开模型） -->
+    <select id="selectAll" resultType="com.yuntian.chat_app.entity.Character">
+        SELECT id, name, image, appearance, background, personality, classic_lines
+        FROM `character`
+        WHERE is_deleted = 0 AND is_public = 1
     </select>
 </mapper>

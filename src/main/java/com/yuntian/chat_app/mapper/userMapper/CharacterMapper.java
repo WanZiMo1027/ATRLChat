@@ -31,11 +31,17 @@ public interface CharacterMapper {
     void updateById(Character character);
 
     /**
-     * 获取当前用户的所有角色列表
+     * 获取当前用户的所有角色列表（我的模型）
      * @param userId 用户ID
      * @return 角色列表
      */
     List<Character> selectByUserId(@Param("userId") Long userId);
+
+    /**
+     * 获取所有角色列表（公开模型）
+     * @return 角色列表
+     */
+    List<Character> selectAll();
 
     /**
      * 根据ID查询角色详情

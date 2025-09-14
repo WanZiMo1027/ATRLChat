@@ -31,6 +31,11 @@ public class Character implements Serializable {
      * 角色头像URL
      */
     private String image;
+
+    /**
+     * 是否公开，0-不公开，1-公开
+     */
+    private Integer isPublic;
     /**
      * 角色外表描述
      */

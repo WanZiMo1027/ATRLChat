@@ -52,6 +52,7 @@ public class CharacterServiceImpl implements CharacterService {
             log.info("角色信息已临时存储到Redis，临时key：{}", tempKey);
 
             // 2. 将数据插入到MySQL
+            character.setIsPublic(0);
             int result = characterMapper.insert(character);
             if (result > 0) {
                 log.info("新增角色到MySQL成功，角色ID：{}", character.getId());
@@ -88,8 +89,9 @@ public class CharacterServiceImpl implements CharacterService {
             if (result > 0) {
                 log.info("数据库角色头像更新成功，角色ID：{}", characterId);
 
-                // 2. 更新Redis缓存
+                // 2. 同步更新Redis缓存中的头像URL（若不存在则创建）
                 updateCharacterImageInRedis(characterId, imageUrl);
+                log.info("Redis缓存头像已更新，角色ID：{}", characterId);
 
             } else {
                 log.error("数据库角色头像更新失败，角色ID：{}", characterId);
@@ -109,6 +111,10 @@ public class CharacterServiceImpl implements CharacterService {
         character.setImage(imageUrl);
         characterMapper.updateById(character);
         log.info("角色头像URL已更新，角色ID：{}，URL：{}", characterId, imageUrl);
+        
+        // 同步更新Redis缓存，防止读取到旧值
+        updateCharacterImageInRedis(characterId, imageUrl);
+        log.info("Redis缓存头像已更新（uploadCharacterAvatar），角色ID：{}", characterId);
     }
 
     @Override
@@ -130,16 +136,26 @@ public class CharacterServiceImpl implements CharacterService {
             String characterKey = CHARACTER_REDIS_KEY + characterId;
             String characterJson = stringRedisTemplate.opsForValue().get(characterKey);
 
+            Character character;
             if (characterJson != null) {
-                Character character = JSONUtil.toBean(characterJson, Character.class);
+                // 更新已缓存的角色信息
+                character = JSONUtil.toBean(characterJson, Character.class);
                 character.setImage(imageUrl);
-
-                // 更新Redis缓存
-                stringRedisTemplate.opsForValue().set(characterKey,
-                        JSONUtil.toJsonStr(character), 7, TimeUnit.DAYS);
-
-                log.info("Redis角色头像更新成功，角色ID：{}", characterId);
+            } else {
+                // 如果没有缓存，从数据库获取并更新缓存
+                character = characterMapper.selectById(characterId);
+                if (character == null) {
+                    log.warn("在数据库中未找到角色，无法更新Redis缓存，角色ID：{}", characterId);
+                    return;
+                }
+                character.setImage(imageUrl);
             }
+
+            // 更新Redis缓存
+            stringRedisTemplate.opsForValue().set(characterKey,
+                    JSONUtil.toJsonStr(character), 7, TimeUnit.DAYS);
+
+            log.info("Redis角色头像更新成功，角色ID：{}", characterId);
 
         } catch (Exception e) {
             log.error("更新Redis角色头像失败：{}", e.getMessage(), e);
@@ -192,4 +208,12 @@ public class CharacterServiceImpl implements CharacterService {
 
         return character;
     }
+
+    /**
+     * 获取所有角色列表（公开模型）
+     * @return 角色列表
+     */
+
+
+
 }

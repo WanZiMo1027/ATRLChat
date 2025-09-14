@@ -41,4 +41,6 @@ public interface CharacterService {
      * @return 角色对象
      */
     Character getCharacterById(Long id);
+
+
 }

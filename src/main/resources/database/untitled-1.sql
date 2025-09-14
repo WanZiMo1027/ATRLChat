@@ -50,8 +50,7 @@ CREATE TABLE IF NOT EXISTS `character` (
 
 -- 插入示例数据
 INSERT INTO `character` (name, appearance, background, personality, classic_lines, user_id) VALUES
-                                                                                                ('勇敢的骑士',
-                                                                                                 '身穿银白色盔甲，手持闪耀的长剑，金发碧眼，面容坚毅',
+                                                                                                ('勇敢的骑士',                                                                                             '身穿银白色盔甲，手持闪耀的长剑，金发碧眼，面容坚毅',
                                                                                                  '出生贵族世家，自幼接受骑士训练，誓死保卫王国和平',
                                                                                                  '勇敢无畏，忠诚正直，富有同情心',
                                                                                                  '为了荣耀和正义，我绝不退缩！',
@@ -65,4 +64,7 @@ INSERT INTO `character` (name, appearance, background, personality, classic_line
 
 -- 在character表中添加image字段
 ALTER TABLE `character` ADD COLUMN `image` VARCHAR(255) COMMENT '角色头像URL' AFTER `name`;
+
+-- 在character表中添加is_public字段
+ALTER TABLE `character` ADD COLUMN `is_public` TINYINT(1) DEFAULT 0 COMMENT '是否公开，0-不公开，1-公开' AFTER `image`;
 
