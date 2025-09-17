@@ -32,7 +32,7 @@ public class CharacterController {
      * 我的模型角色列表
      * @return
      */
-    @GetMapping("/List")
+    @GetMapping("/my-list")
     public Result getCharacterList(){
         List<Character> characters = characterService.getCharacterList();
 
