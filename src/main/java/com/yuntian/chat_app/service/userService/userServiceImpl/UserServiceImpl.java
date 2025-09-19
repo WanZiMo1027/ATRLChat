@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
+import java.time.LocalDateTime;
+
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -35,5 +37,24 @@ public class UserServiceImpl implements UserService {
 
 
         return user1;
+    }
+
+    /**
+     * 注册用户
+     * @param user
+     * @return
+     */
+    @Override
+    public boolean register(User user) {
+        String username = user.getUsername();
+        User user1 = userMapper.selectByUsername(username);
+        if(user1 != null){
+            throw new RuntimeException("用户已存在");
+        }
+        user.setPassword(DigestUtils.md5DigestAsHex(user.getPassword().getBytes()));
+        user.setCreateTime(LocalDateTime.now());
+        user.setUpdateTime(LocalDateTime.now());
+        int insert = userMapper.insert(user);
+        return insert > 0;
     }
 }

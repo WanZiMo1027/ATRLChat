@@ -14,4 +14,11 @@ public interface UserService {
      * @return 登录成功后的用户信息
      */
     User login(User user);
+
+    /**
+     * 注册用户
+     * @param user
+     * @return
+     */
+    boolean register(User user);
 }

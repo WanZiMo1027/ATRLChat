@@ -39,7 +39,7 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
                 // 放行登录与静态资源，否则静态页/静态资源会被拦截导致 404/重定向到 /error
                 .excludePathPatterns(
                         "/user/login",
-                        "/ai/**",
+                        "/user/register",
                         "/error",
                         "/",
                         "/index.html",

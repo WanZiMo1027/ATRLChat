@@ -9,6 +9,7 @@ import com.yuntian.chat_app.utils.JwtUtil;
 import com.yuntian.chat_app.vo.UserLoginVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -27,7 +28,7 @@ public class UserController {
     @Autowired
     private JwtProperties jwtProperties;
 
-    @RequestMapping("/login")
+    @PostMapping("/login")
     public Result<UserLoginVo> userLogin(@RequestBody User loginReq) {
         log.info("userLogin: {}", loginReq);
 
@@ -51,5 +52,17 @@ public class UserController {
                 .build();
 
         return Result.success(loginVo);
+    }
+
+    /**
+     * 注册用户
+     * @param user
+     * @return
+     */
+    @PostMapping("/register")
+    public Result<Boolean> register(@RequestBody User user) {
+        log.info("register: {}", user);
+        boolean register = userService.register(user);
+        return Result.success(register);
     }
 }

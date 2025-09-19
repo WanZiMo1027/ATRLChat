@@ -13,4 +13,11 @@ public interface UserMapper {
     @Select("select * from user where username = #{username}")
     User selectByUsername(String username);
 
+    /**
+     * 注册用户
+     * @param user
+     * @return
+     */
+
+    int insert(User user);
 }
