@@ -21,4 +21,18 @@ public interface UserService {
      * @return
      */
     boolean register(User user);
+
+    /**
+     * 修改用户信息
+     * @param user
+     * @return
+     */
+    boolean update(User user);
+
+    /**
+     * 根据id查找用户
+     * @param id
+     * @return
+     */
+    User getById(Long id);
 }
