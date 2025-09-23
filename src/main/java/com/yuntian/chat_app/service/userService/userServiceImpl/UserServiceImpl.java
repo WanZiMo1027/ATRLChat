@@ -7,9 +7,11 @@ import com.yuntian.chat_app.mapper.userMapper.UserMapper;
 import com.yuntian.chat_app.service.userService.UserService;
 
 import com.yuntian.chat_app.utils.SnowflakeIdGenerator;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.DigestUtils;
 
 import java.time.LocalDateTime;
@@ -17,6 +19,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 
+@Slf4j
 @Service
 public class UserServiceImpl implements UserService {
 
@@ -35,14 +38,14 @@ public class UserServiceImpl implements UserService {
         String username = user.getUsername();
         String password = user.getPassword();
         User user1 = userMapper.selectByUsername(username);
-        if(user1 == null){
+        if (user1 == null) {
             throw new RuntimeException("用户不存在");
         }
         password = DigestUtils.md5DigestAsHex(password.getBytes());
-        if(!password.equals(user1.getPassword())){
+        if (!password.equals(user1.getPassword())) {
             throw new RuntimeException("密码错误");
         }
-        if (user1.getIsDeleted() == 1){
+        if (user1.getIsDeleted() == 1) {
             throw new RuntimeException("用户已被删除");
         }
 
@@ -52,6 +55,7 @@ public class UserServiceImpl implements UserService {
 
     /**
      * 注册用户
+     *
      * @param user
      * @return
      */
@@ -59,7 +63,7 @@ public class UserServiceImpl implements UserService {
     public boolean register(User user) {
         String username = user.getUsername();
         User user1 = userMapper.selectByUsername(username);
-        if(user1 != null){
+        if (user1 != null) {
             throw new RuntimeException("用户已存在");
         }
         //生成随机id
@@ -77,6 +81,7 @@ public class UserServiceImpl implements UserService {
 
     /**
      * 修改用户信息
+     *
      * @param user
      * @return
      */
@@ -89,11 +94,29 @@ public class UserServiceImpl implements UserService {
 
     /**
      * 根据id查找用户
+     *
      * @param id
      * @return
      */
     @Override
     public User getById(Long id) {
         return userMapper.selectById(id);
+    }
+
+    /**
+     * 更新用户头像
+     * @param currentUserId
+     * @param imageUrl
+     */
+    @Override
+    @Transactional
+    public void updateUserAvatar(Long currentUserId, String imageUrl) {
+        userMapper.updateAvatar(currentUserId, imageUrl);
+
+        //更新redis缓存
+        String userKey = USER_REDIS_KEY + currentUserId;
+        stringRedisTemplate.opsForValue().set(userKey, JSONUtil.toJsonStr(userMapper.selectById(currentUserId)), 7, TimeUnit.DAYS);
+        log.info("更新用户头像，用户ID：{}，头像URL：{}", currentUserId, imageUrl);
+
     }
 }

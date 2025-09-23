@@ -35,4 +35,11 @@ public interface UserService {
      * @return
      */
     User getById(Long id);
+
+    /**
+     * 更新用户头像
+     * @param currentUserId
+     * @param imageUrl
+     */
+    void updateUserAvatar(Long currentUserId, String imageUrl);
 }

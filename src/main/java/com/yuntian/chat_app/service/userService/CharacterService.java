@@ -15,12 +15,12 @@ public interface CharacterService {
      */
     void addCharacter(Character character);
 
-    /**
+/*    *//**
      * 更新角色头像
      * @param characterId 角色ID
      * @param imageUrl 头像URL
-     */
-    void updateCharacterImage(Long characterId, String imageUrl);
+     *//*
+    void updateCharacterImage(Long characterId, String imageUrl);*/
 
     /**
      * 获取角色头像

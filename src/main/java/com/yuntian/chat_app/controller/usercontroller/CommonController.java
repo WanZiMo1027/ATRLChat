@@ -1,7 +1,9 @@
 package com.yuntian.chat_app.controller.usercontroller;
 
+import com.yuntian.chat_app.context.BaseContext;
 import com.yuntian.chat_app.result.Result;
 import com.yuntian.chat_app.service.userService.CharacterService;
+import com.yuntian.chat_app.service.userService.UserService;
 import com.yuntian.chat_app.utils.AliOssUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +25,9 @@ public class CommonController {
 
     @Autowired
     private CharacterService characterService;
+
+    @Autowired
+    private UserService userService;
 
     /**
      * 文件上传
@@ -90,5 +95,40 @@ public class CommonController {
             log.error("更新角色头像URL失败：{}", e.getMessage(), e);
             return Result.error("头像上传成功但保存失败");
         }
+    }
+
+    /**
+     * 用户头像上传
+     * @param file 头像文件
+     * @return 上传结果
+     */
+    @PostMapping("/uploadUserAvatar")
+    public Result<String> uploadUserAvatar(@RequestParam("file") MultipartFile file) throws IOException {
+        Long currentUserId = BaseContext.getCurrentId();
+        log.info("用户头像上传，用户ID：{}，文件名：{}", currentUserId, file.getOriginalFilename());
+        // 验证文件类型
+        String originalFilename = file.getOriginalFilename();
+        String extension = originalFilename.substring(originalFilename.lastIndexOf(".")).toLowerCase();
+        if (!".jpg".equals(extension) && !".jpeg".equals(extension) &&
+                !".png".equals(extension) && !".webp".equals(extension)) {
+            return Result.error("只支持jpg、jpeg、png、webp格式的图片");
+        }
+
+        // 验证文件大小（最大2MB）
+        if (file.getSize() > 2 * 1024 * 1024) {
+            return Result.error("图片大小不能超过2MB");
+        }
+
+        // 生成OSS对象名：User_avatars/{角色ID}_{时间戳}{后缀}
+        String objectName = String.format("User_avatars/%d_%d%s",
+                currentUserId, System.currentTimeMillis(), extension);
+
+        // 上传到OSS
+        String imageUrl = aliOssUtil.upload(file.getBytes(), objectName);
+
+        //更新数据库中头像的url
+        userService.updateUserAvatar(currentUserId, imageUrl);
+
+        return Result.success(imageUrl);
     }
 }

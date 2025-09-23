@@ -5,6 +5,7 @@ import com.yuntian.chat_app.entity.User;
 import com.yuntian.chat_app.vo.UserLoginVo;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 import org.springframework.stereotype.Service;
 
 @Mapper
@@ -30,4 +31,8 @@ public interface UserMapper {
     User selectById(Long id);
 
     int update(User user);
+
+
+    @Update("update user set avatar_url = #{imageUrl} where id = #{currentUserId}")
+    void updateAvatar(Long currentUserId, String imageUrl);
 }

@@ -33,7 +33,7 @@ public class CharacterController {
      * @return
      */
     @GetMapping("/my-list")
-    public Result getCharacterList(){
+    public Result getCharacterList(){  //todo 在缓存中查
         List<Character> characters = characterService.getCharacterList();
 
         // 构建符合要求的响应格式
@@ -47,7 +47,7 @@ public class CharacterController {
      *
      */
     @GetMapping("/square")
-    public Result getCharacterSquare(){
+    public Result getCharacterSquare(){   //todo 在缓存中查
         List<Character> characters = characterService.getPublicCharacter();
         return Result.success(characters);
     }

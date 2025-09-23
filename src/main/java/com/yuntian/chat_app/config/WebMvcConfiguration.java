@@ -41,7 +41,6 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
                         "/user/login",
                         "/user/register",
                         "/error",
-                        "/",
                         "/index.html",
                         "/ai-chat-test.html",
                         "/**/*.html",

@@ -78,7 +78,7 @@ public class CharacterServiceImpl implements CharacterService {
     }
 
 
-    @Override
+/*    @Override
     @Transactional
     public void updateCharacterImage(Long characterId, String imageUrl) {
         log.info("更新角色头像，角色ID：{}，头像URL：{}", characterId, imageUrl);
@@ -102,7 +102,7 @@ public class CharacterServiceImpl implements CharacterService {
             log.error("更新角色头像失败：{}", e.getMessage(), e);
             throw new RuntimeException("更新角色头像失败：" + e.getMessage());
         }
-    }
+    }*/
 
     @Override
     public void updateCharacterAvatar(Long characterId, String imageUrl) {

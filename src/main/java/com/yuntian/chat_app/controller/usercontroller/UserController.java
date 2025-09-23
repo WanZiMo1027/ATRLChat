@@ -1,6 +1,7 @@
 package com.yuntian.chat_app.controller.usercontroller;
 
 
+import com.yuntian.chat_app.context.BaseContext;
 import com.yuntian.chat_app.entity.User;
 import com.yuntian.chat_app.properties.JwtProperties;
 import com.yuntian.chat_app.result.Result;
@@ -65,12 +66,12 @@ public class UserController {
 
     /**
      * 查找用户信息
-     * @param id
      * @return
      */
-    @GetMapping("/{id}")
-    public Result<User> getUserInfo(@PathVariable Long id) {
-        log.info("getUserInfo: {}", id);
+    @GetMapping("/user/UserInfo")
+    public Result<User> getUserInfo() {
+        Long id = BaseContext.getCurrentId();
+        //通过threadLocal获取当前登录用户的id
         User user = userService.getById(id);
         return Result.success(user);
     }
@@ -86,4 +87,17 @@ public class UserController {
         boolean update = userService.update(user);
         return Result.success(update);
     }
+
+
+    /**
+     * 用户上传头像
+     */
+    @PostMapping("/updateAvatar")
+    public Result<Boolean> updateUserAvatar(@RequestParam Long userId, @RequestParam String imageUrl) {
+        log.info("updateUserAvatar: userId={}, imageUrl={}", userId, imageUrl);
+        userService.updateUserAvatar(userId, imageUrl);
+        return Result.success(true);
+    }
+
+
 }
