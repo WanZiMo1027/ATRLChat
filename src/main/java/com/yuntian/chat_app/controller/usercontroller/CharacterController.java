@@ -18,6 +18,8 @@ public class CharacterController {
     @Autowired
     private CharacterService characterService;
 
+
+
     /**
      * 新增角色
      */
@@ -34,6 +36,8 @@ public class CharacterController {
      */
     @GetMapping("/my-list")
     public Result getCharacterList(){  //todo 在缓存中查
+
+
         List<Character> characters = characterService.getCharacterList();
 
         // 构建符合要求的响应格式
