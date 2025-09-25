@@ -4,6 +4,7 @@ package com.yuntian.chat_app.controller.usercontroller;
 import com.yuntian.chat_app.entity.Character;
 import com.yuntian.chat_app.result.Result;
 import com.yuntian.chat_app.service.userService.CharacterService;
+import com.yuntian.chat_app.service.userService.FollowService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,13 +19,16 @@ public class CharacterController {
     @Autowired
     private CharacterService characterService;
 
+    @Autowired
+    private FollowService followService;
+
 
 
     /**
      * 新增角色
      */
     @RequestMapping("/add")
-    public Result addCharacter(@RequestBody Character character){
+    public Result addCharacter(@RequestParam Character character){
         characterService.addCharacter(character);
         return Result.success(character.getId());
     }
@@ -70,5 +74,17 @@ public class CharacterController {
         return Result.success(character);
     }
 
+    /**
+     * 关注角色
+     * @param id 角色ID
+     */
+    @PostMapping("/follow")
+    public Result followCharacter(@RequestParam Long id){
+        Boolean followCharacter = followService.followCharacter(id);
+        if (followCharacter){
+            return Result.success("关注成功");
+        }
+        return Result.success("取消关注");
+    }
 
 }

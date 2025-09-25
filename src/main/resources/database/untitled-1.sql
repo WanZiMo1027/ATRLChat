@@ -68,3 +68,33 @@ ALTER TABLE `character` ADD COLUMN `image` VARCHAR(255) COMMENT '角色头像URL
 -- 在character表中添加is_public字段
 ALTER TABLE `character` ADD COLUMN `is_public` TINYINT(1) DEFAULT 0 COMMENT '是否公开，0-不公开，1-公开' AFTER `image`;
 
+
+create table user_follow_character
+(
+    follow_id             bigint auto_increment comment '主键自增ID'
+        primary key,
+
+    user_id        bigint                              not null comment '关注者用户ID，外键关联 user(id)',
+    character_id   bigint                              not null comment '被关注的角色ID，外键关联 character(id)',
+
+    create_time    datetime default CURRENT_TIMESTAMP  not null comment '创建时间',
+    update_time    datetime default CURRENT_TIMESTAMP  not null on update CURRENT_TIMESTAMP comment '更新时间',
+
+    is_deleted     tinyint(0) default 1                not null comment '是否删除（0-未删除，1-已删除）',
+
+    -- 约束
+    constraint fk_ufc_user
+        foreign key (user_id) references user (id)
+            on delete cascade
+            on update cascade,
+
+    constraint fk_ufc_character
+        foreign key (character_id) references `character` (id)
+            on delete cascade
+            on update cascade,
+
+    -- 一个用户对同一角色只能关注一次
+    constraint uk_user_character unique (user_id, character_id)
+)
+    comment '用户关注角色关系表';
+

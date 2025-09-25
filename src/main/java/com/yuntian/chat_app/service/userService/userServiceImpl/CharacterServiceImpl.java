@@ -223,7 +223,10 @@ public class CharacterServiceImpl implements CharacterService {
 
         return character;
     }
-
+    /**
+     * 获取所有角色列表（公开模型）
+     * @return 角色列表
+     */
     @Override
     public List<Character> getPublicCharacter() {
         String characterSquareKey = CHARACTER_SQUARE_KEY;
