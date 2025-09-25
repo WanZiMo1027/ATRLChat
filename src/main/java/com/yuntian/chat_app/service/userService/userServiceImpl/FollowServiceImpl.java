@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @Slf4j
@@ -49,5 +50,27 @@ public class FollowServiceImpl implements FollowService {
 
 
         return next == 1 ? Boolean.TRUE : Boolean.FALSE;
+    }
+
+    /**
+     * 查看关注状态
+     * @param id 角色ID
+     * @param userId 用户ID
+     * @return 关注状态
+     */
+    @Override
+    public Boolean isFollowCharacter(Long id, Long userId) {
+        UserFollowCharacter userFollowCharacter = userFollowCharacterMapper.selectByUserIdAndCharacterId(userId, id);
+        return userFollowCharacter != null && userFollowCharacter.getStatus() == 1;
+    }
+
+    /**
+     * 获取用户关注列表
+     * @param userId 用户ID
+     * @return 关注列表
+     */
+    @Override
+    public List<UserFollowCharacter> getFollowList(Long userId) {
+        return userFollowCharacterMapper.selectFollowList(userId);
     }
 }

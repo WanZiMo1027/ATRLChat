@@ -6,6 +6,8 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
+import java.util.List;
+
 @Mapper
 public interface UserFollowCharacterMapper {
     /**
@@ -26,4 +28,12 @@ public interface UserFollowCharacterMapper {
      */
     @Update("update user_follow_character set status=#{status},update_time=#{updateTime} where follow_id=#{followId}")
     void updateById(UserFollowCharacter userFollowCharacter);
+
+    /**
+     * 获取用户关注列表
+     * @param userId 用户ID
+     * @return 关注列表
+     */
+    @Select("select * from user_follow_character where user_id=#{userId} and status=1")
+    List<UserFollowCharacter> selectFollowList(Long userId);
 }
