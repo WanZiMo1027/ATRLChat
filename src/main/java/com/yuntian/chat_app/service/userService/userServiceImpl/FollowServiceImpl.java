@@ -30,6 +30,7 @@ public class FollowServiceImpl implements FollowService {
     private StringRedisTemplate stringRedisTemplate;
 
     private static final String FOLLOW_KEY = "follow:";
+    private static final String FOLLOW_LIST_KEY = "follow:list:";
     private static final int CACHE_TTL_DAYS = 1;
 
     /**
@@ -48,6 +49,7 @@ public class FollowServiceImpl implements FollowService {
             //将followJson转换为UserFollowCharacter对象
             UserFollowCharacter userFollowCharacter = JSONUtil.toBean(followJson, UserFollowCharacter.class);
             //更新状态
+            stringRedisTemplate.delete(FOLLOW_LIST_KEY+userId);
             return updateStatus(userFollowCharacter, followKey);
         }else {
             //如果未查到则从数据库查询
@@ -67,10 +69,12 @@ public class FollowServiceImpl implements FollowService {
                 userFollowCharacterMapper.followCharacter(rel);
                 String newFollowJson = JSONUtil.toJsonStr(rel);
                 stringRedisTemplate.opsForValue().set(followKey, newFollowJson, CACHE_TTL_DAYS, TimeUnit.DAYS);
+                stringRedisTemplate.delete(FOLLOW_LIST_KEY+userId);
                 return rel.getStatus() == 1;
             }
             //如果查得到则更新状态
             //更新状态
+                stringRedisTemplate.delete(FOLLOW_LIST_KEY+userId);
                 return updateStatus(rel, followKey);
 
         }
@@ -96,7 +100,17 @@ public class FollowServiceImpl implements FollowService {
      */
     @Override
     public List<CharacterFollowVo> getFollowList(Long userId) {
-        return userFollowCharacterMapper.selectFollowList(userId);
+        //查看缓存中的列表
+        String followListJson = stringRedisTemplate.opsForValue().get(FOLLOW_LIST_KEY + userId);
+        if(StrUtil.isNotBlank(followListJson)){
+            return JSONUtil.toList(followListJson, CharacterFollowVo.class);
+        }
+        //如果没有则从数据库查询
+        List<CharacterFollowVo> followList = userFollowCharacterMapper.selectFollowList(userId);
+        //将查询结果转换为JSON字符串并缓存
+        String followListJsonCache = JSONUtil.toJsonStr(followList);
+        stringRedisTemplate.opsForValue().set(FOLLOW_LIST_KEY + userId, followListJsonCache, CACHE_TTL_DAYS, TimeUnit.DAYS);
+        return followList;
     }
 
     //更新状态

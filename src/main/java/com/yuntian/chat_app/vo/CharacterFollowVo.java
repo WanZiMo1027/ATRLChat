@@ -11,6 +11,7 @@ import java.io.Serializable;
 @NoArgsConstructor
 public class CharacterFollowVo implements Serializable {
 
+        private Long id;
         private String name;
         private String image;
         private String appearance;
