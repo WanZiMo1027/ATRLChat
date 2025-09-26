@@ -1,6 +1,7 @@
 package com.yuntian.chat_app.mapper.userMapper;
 
 import com.yuntian.chat_app.entity.UserFollowCharacter;
+import com.yuntian.chat_app.vo.CharacterFollowVo;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
@@ -34,6 +35,6 @@ public interface UserFollowCharacterMapper {
      * @param userId 用户ID
      * @return 关注列表
      */
-    @Select("select * from user_follow_character where user_id=#{userId} and status=1")
-    List<UserFollowCharacter> selectFollowList(Long userId);
+    @Select("select c.name ,c.image,c.appearance,c.background from user_follow_character u ,`character` c where u.character_id=c.id and u.user_id=#{userId} and status=1")
+    List<CharacterFollowVo> selectFollowList(Long userId);
 }

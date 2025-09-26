@@ -1,6 +1,7 @@
 package com.yuntian.chat_app.service.userService;
 
 import com.yuntian.chat_app.entity.UserFollowCharacter;
+import com.yuntian.chat_app.vo.CharacterFollowVo;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -27,5 +28,5 @@ public interface FollowService {
      * @param userId 用户ID
      * @return 关注列表
      */
-    List<UserFollowCharacter> getFollowList(Long userId);
+    List<CharacterFollowVo> getFollowList(Long userId);
 }

@@ -4,7 +4,9 @@ import com.yuntian.chat_app.context.BaseContext;
 import com.yuntian.chat_app.entity.UserFollowCharacter;
 import com.yuntian.chat_app.result.Result;
 import com.yuntian.chat_app.service.userService.FollowService;
+import com.yuntian.chat_app.vo.CharacterFollowVo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -46,9 +48,9 @@ public class FollowController {
      * @return 关注列表
      */
     @GetMapping("/list")
-    public Result<List<UserFollowCharacter>> getFollowList(){
+    public Result<List<CharacterFollowVo>> getFollowList(){
         Long userId = BaseContext.getCurrentId();
-        List<UserFollowCharacter> followList = followService.getFollowList(userId);
+        List<CharacterFollowVo> followList = followService.getFollowList(userId);
         return Result.success(followList);
     }
 }
