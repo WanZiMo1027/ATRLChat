@@ -39,7 +39,7 @@ public class CharacterController {
      * @return
      */
     @GetMapping("/my-list")
-    public Result getCharacterList(){  //todo 在缓存中查
+    public Result getCharacterList(){
 
 
         List<Character> characters = characterService.getCharacterList();
@@ -55,7 +55,7 @@ public class CharacterController {
      *
      */
     @GetMapping("/square")
-    public Result getCharacterSquare(){   //todo 在缓存中查
+    public Result getCharacterSquare(){
         List<Character> characters = characterService.getPublicCharacter();
         return Result.success(characters);
     }
