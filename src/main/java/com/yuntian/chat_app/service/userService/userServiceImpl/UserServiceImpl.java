@@ -2,6 +2,7 @@ package com.yuntian.chat_app.service.userService.userServiceImpl;
 
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.json.JSONUtil;
+import com.yuntian.chat_app.context.BaseContext;
 import com.yuntian.chat_app.entity.User;
 import com.yuntian.chat_app.mapper.userMapper.UserMapper;
 import com.yuntian.chat_app.service.userService.UserService;
@@ -118,5 +119,16 @@ public class UserServiceImpl implements UserService {
         stringRedisTemplate.opsForValue().set(userKey, JSONUtil.toJsonStr(userMapper.selectById(currentUserId)), 7, TimeUnit.DAYS);
         log.info("更新用户头像，用户ID：{}，头像URL：{}", currentUserId, imageUrl);
 
+    }
+
+    /**
+     * 获取用户头像
+     * @return
+     */
+    @Override
+    public String getUserAvatar() {
+        Long currentUserId = BaseContext.getCurrentId();
+        User user = userMapper.selectById(currentUserId);
+        return user.getAvatarUrl();
     }
 }

@@ -42,4 +42,10 @@ public interface UserService {
      * @param imageUrl
      */
     void updateUserAvatar(Long currentUserId, String imageUrl);
+
+    /**
+     * 获取用户头像
+     * @return
+     */
+    String getUserAvatar();
 }

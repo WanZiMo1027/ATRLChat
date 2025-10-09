@@ -99,5 +99,14 @@ public class UserController {
         return Result.success(true);
     }
 
+    /**
+     * 查看用户头像
+     * @return
+     */
+    @GetMapping("/avatar")
+    public Result<String> getUserAvatar() {
+        String avatarUrl = userService.getUserAvatar();
+        return Result.success(avatarUrl);
+    }
 
 }
