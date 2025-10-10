@@ -14,6 +14,7 @@ import dev.langchain4j.service.spring.AiServiceWiringMode;
         wiringMode = AiServiceWiringMode.EXPLICIT,
         chatModel = "openAiChatModel",//指定模型
         chatMemoryProvider = "chatMemoryProvider"   // 配置会话记忆功能    配置的是bean的名字    默认是chatMemoryProvider
+        ,tools = "timeTools"
 )
 public interface ConsultantService {
 
@@ -25,6 +26,7 @@ public interface ConsultantService {
                        @V("appearance") String appearance,
                        @V("background") String background,
                        @V("personality") String personality,
-                       @V("classic_lines") String classicLines) ;
+                       @V("classic_lines") String classicLines
+    ) ;
 
 }

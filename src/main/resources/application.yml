@@ -1,21 +1,23 @@
 spring:
+  profiles:
+    active: dev
   datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    username: root
-    password: 1234
-    url: jdbc:mysql://localhost:3307/chatapp?useSSL=false&serverTimezone=UTC&characterEncoding=utf-8&allowPublicKeyRetrieval=true
+    driver-class-name: ${spring.datasource.driver-class-name}
+    username: ${spring.datasource.username}
+    password: ${spring.datasource.password}
+    url: ${spring.datasource.url}
   data:
     redis:
-      host: localhost
-      port: 16379
-      database: 0
-      connect-timeout: 10000
-      timeout: 10000
+      host: ${spring.data.redis.host}
+      port: ${spring.data.redis.port}
+      database: ${spring.data.redis.database}
+      connect-timeout: ${spring.data.redis.connect-timeout}
+      timeout: ${spring.data.redis.timeout}
   alioss:
-    endpoint: oss-cn-beijing.aliyuncs.com
-    access-key-id: LTAI5tHPZn9gwzxD5n9V81vx
-    access-key-secret: b2GY62XDIYYqv2QusAIRvBSqdPJt2y
-    bucket-name: sky-wanzimo
+    endpoint: ${spring.alioss.endpoint}
+    access-key-id: ${spring.alioss.access-key-id}
+    access-key-secret: ${spring.alioss.access-key-secret}
+    bucket-name: ${spring.alioss.bucket-name}
 
 langchain4j:
   open-ai:
@@ -45,13 +47,13 @@ mybatis:
 chatapp:
   jwt:
     # 设置jwt签名加密时使用的秘钥
-    admin-secret-key: yuntianChatAppAdminSecretKeyForHS256AlgorithmSecurity2024
+    admin-secret-key: ${chatapp.jwt.admin-secret-key}
     # 设置jwt过期时间
-    admin-ttl: 7200000
+    admin-ttl: ${chatapp.jwt.admin-ttl}
     # 设置前端传递过来的令牌名称
-    admin-token-name: token
-    user-secret-key: yuntianChatAppAdminSecretKeyForHS256AlgorithmSecurity2024
-    user-ttl: 7200000
-    user-token-name: token
+    admin-token-name: ${chatapp.jwt.admin-token-name}
+    user-secret-key: ${chatapp.jwt.user-secret-key}
+    user-ttl: ${chatapp.jwt.user-ttl}
+    user-token-name: ${chatapp.jwt.user-token-name}
 
 
