@@ -83,8 +83,7 @@ public class ChatController {
     @PostMapping("/ai/chat/new/{characterId}")
     public Result<String> newChat(@PathVariable String characterId, @RequestBody(required = false) Map<String, String> request) {
         Long userId = BaseContext.getCurrentId(); // 或者从参数获取
-        String title = request != null ? request.get("title") : null;
-        String sessionId = chatHistoryService.createNewSession(userId, characterId, title);
+        String sessionId = chatHistoryService.createNewSession(userId, characterId);
         return Result.success(sessionId);
     }
 }

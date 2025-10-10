@@ -55,6 +55,8 @@ public class ChatHistoryService {
                     chatItem.put("content", content);
                     return chatItem;
                 })
+                .filter(chatItem -> chatItem.get("content") != null
+                        && !chatItem.get("content").trim().isEmpty())
                 .collect(Collectors.toList());
     }
 
@@ -87,7 +89,6 @@ public class ChatHistoryService {
                         sessionItem.put("sessionId", sessionId);
                         sessionItem.put("createTime", sessionInfo.get("createTime"));
                         sessionItem.put("updateTime", sessionInfo.get("updateTime"));
-                        sessionItem.put("title", sessionInfo.get("title")); // 会话标题
 
                         // 获取最后一条消息作为预览
                         String lastMessage = getLastMessagePreview(sessionId);
@@ -118,7 +119,7 @@ public class ChatHistoryService {
     /**
      * 创建新的聊天会话并记录到Redis
      */
-    public String createNewSession(Long userId, String characterId, String title) {
+    public String createNewSession(Long userId, String characterId) {
         // 生成新的sessionId
         long timestamp = System.currentTimeMillis();
         String sessionId = "chat_" + userId + "_" + characterId + "_" + timestamp;
@@ -135,7 +136,6 @@ public class ChatHistoryService {
             sessionInfo.put("characterId", characterId);
             sessionInfo.put("createTime", String.valueOf(timestamp));
             sessionInfo.put("updateTime", String.valueOf(timestamp));
-            sessionInfo.put("title", title != null ? title : "新对话"); // 默认标题
 
             redisTemplate.opsForHash().putAll(sessionInfoKey, sessionInfo);
 
@@ -210,14 +210,7 @@ public class ChatHistoryService {
                 sessionInfo.put("createTime", String.valueOf(currentTime));
                 sessionInfo.put("updateTime", String.valueOf(currentTime));
 
-                // 根据sessionId生成标题
-                String title;
-                if (sessionId.equals("chat_" + userId + "_" + characterId)) {
-                    title = "默认对话"; // 默认会话的标题
-                } else {
-                    title = "对话 " + new Date(currentTime).toString().substring(11, 16); // 其他会话用时间命名
-                }
-                sessionInfo.put("title", title);
+
 
                 redisTemplate.opsForHash().putAll(sessionInfoKey, sessionInfo);
 
