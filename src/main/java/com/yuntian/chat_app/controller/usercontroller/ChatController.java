@@ -3,8 +3,10 @@ package com.yuntian.chat_app.controller.usercontroller;
 
 import com.yuntian.chat_app.context.BaseContext;
 import com.yuntian.chat_app.entity.Character;
+import com.yuntian.chat_app.entity.TokenRecord;
 import com.yuntian.chat_app.result.Result;
 import com.yuntian.chat_app.service.userService.ConsultantService;
+import com.yuntian.chat_app.service.userService.TokenUsageService;
 import com.yuntian.chat_app.service.userService.userServiceImpl.ChatHistoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -21,6 +23,9 @@ public class ChatController {
     @Autowired
     private ChatHistoryService chatHistoryService;
 
+    @Autowired
+    private TokenUsageService tokenUsageService;
+
 
 
     @GetMapping(value = "/ai/chat", produces = "text/html;charset=UTF-8")
@@ -29,7 +34,7 @@ public class ChatController {
 
         // 如果没有传入memoryId，使用默认会话
         if (memoryId == null || memoryId.isEmpty()) {
-            memoryId = "chat_" + userIdLong + "_" + characterId; // 默认会话
+            memoryId = "chat_" + userIdLong + "_" + characterId + System.currentTimeMillis(); // 默认会话
         }
 
 
