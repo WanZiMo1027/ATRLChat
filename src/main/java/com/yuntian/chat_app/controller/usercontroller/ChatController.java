@@ -2,11 +2,11 @@ package com.yuntian.chat_app.controller.usercontroller;
 
 
 import com.yuntian.chat_app.context.BaseContext;
+import com.yuntian.chat_app.context.MonitorContext;
+import com.yuntian.chat_app.context.MonitorContextHolder;
 import com.yuntian.chat_app.entity.Character;
-import com.yuntian.chat_app.entity.TokenRecord;
 import com.yuntian.chat_app.result.Result;
 import com.yuntian.chat_app.service.userService.ConsultantService;
-import com.yuntian.chat_app.service.userService.TokenUsageService;
 import com.yuntian.chat_app.service.userService.userServiceImpl.ChatHistoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -23,31 +23,46 @@ public class ChatController {
     @Autowired
     private ChatHistoryService chatHistoryService;
 
-    @Autowired
-    private TokenUsageService tokenUsageService;
+
 
 
 
     @GetMapping(value = "/ai/chat", produces = "text/html;charset=UTF-8")
     public String chatStream(String memoryId,String userId, String characterId, String message, Character character) {
-        Long userIdLong = Long.parseLong(userId);
+       try {
+           Long userIdLong = Long.parseLong(userId);
 
-        // 如果没有传入memoryId，使用默认会话
-        if (memoryId == null || memoryId.isEmpty()) {
-            memoryId = "chat_" + userIdLong + "_" + characterId + System.currentTimeMillis(); // 默认会话
-        }
+           // 如果没有传入memoryId，使用默认会话
+           if (memoryId == null || memoryId.isEmpty()) {
+               memoryId = "chat_" + userIdLong + "_" + characterId + System.currentTimeMillis(); // 默认会话
+           }
+
+           MonitorContext monitorContext = MonitorContext.builder()
+                   .userId(userId)
+                   .characterId(characterId)
+                   .memoryId(memoryId)
+                   .build();
+           MonitorContextHolder.setContext(monitorContext);
 
 
-        // 更新会话活动时间
-        chatHistoryService.updateSessionActivity(memoryId);
+           // 更新会话活动时间
+           chatHistoryService.updateSessionActivity(memoryId);
 
-        String name = character != null && character.getName() != null ? character.getName() : "";
-        String appearance = character != null && character.getAppearance() != null ? character.getAppearance() : "";
-        String background = character != null && character.getBackground() != null ? character.getBackground() : "";
-        String personality = character != null && character.getPersonality() != null ? character.getPersonality() : "";
-        String classicLines = character != null && character.getClassicLines() != null ? character.getClassicLines() : "";
+           String name = character != null && character.getName() != null ? character.getName() : "";
+           String appearance = character != null && character.getAppearance() != null ? character.getAppearance() : "";
+           String background = character != null && character.getBackground() != null ? character.getBackground() : "";
+           String personality = character != null && character.getPersonality() != null ? character.getPersonality() : "";
+           String classicLines = character != null && character.getClassicLines() != null ? character.getClassicLines() : "";
 
-        return consultantService.chat(memoryId, message, name, appearance, background, personality, classicLines);
+           String response = consultantService.chat(memoryId, message, name, appearance,
+                   background, personality, classicLines);
+
+           return response;
+       } catch (Exception e) {
+           return String.valueOf(Result.error("聊天失败: " + e.getMessage()));
+       }finally {
+           MonitorContextHolder.clearContext();
+       }
     }
 
 

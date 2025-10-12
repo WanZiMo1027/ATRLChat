@@ -1,4 +1,6 @@
 spring:
+  application:
+    name: chat-app
   profiles:
     active: dev
   datasource:
@@ -27,6 +29,14 @@ langchain4j:
       model-name: qwen-plus
       log-requests: true
       log-responses: true
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+      base-path: /actuator  # 建议显式指定（默认就是 /actuator）
+    tags:
+      application: ${spring.application.name}
 
 logging:
   level:
