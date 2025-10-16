@@ -3,6 +3,7 @@ package com.yuntian.chat_app.listener;
 import com.yuntian.chat_app.context.MonitorContext;
 import com.yuntian.chat_app.context.MonitorContextHolder;
 import com.yuntian.chat_app.metrics.AiModelMetricsCollector;
+import com.yuntian.chat_app.service.AiCallLogService;
 import dev.langchain4j.model.chat.listener.ChatModelErrorContext;
 import dev.langchain4j.model.chat.listener.ChatModelListener;
 import dev.langchain4j.model.chat.listener.ChatModelRequestContext;
@@ -10,6 +11,7 @@ import dev.langchain4j.model.chat.listener.ChatModelResponseContext;
 import dev.langchain4j.model.output.TokenUsage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -22,7 +24,8 @@ public class AiModelMetricsListener implements ChatModelListener{
     private static final String MONITOR_CONTEXT_KEY = "monitorContext";
     private static final String REQUEST_START_TIME_KEY = "requestStartTime";
 
-    private final AiModelMetricsCollector metricsCollector;
+    //private final AiModelMetricsCollector metricsCollector;
+    private final AiCallLogService aiCallLogService;
 
     @Override
     public void onRequest(ChatModelRequestContext requestContext) {
@@ -64,34 +67,43 @@ public class AiModelMetricsListener implements ChatModelListener{
             String userId = context.getUserId();
             String characterId = context.getCharacterId();
             String modelName = responseContext.chatResponse().modelName();
+            String memoryId = context.getMemoryId();
 
-            // 1. 记录成功请求
-            metricsCollector.recordRequest(userId, characterId, modelName, "success");
+/*            // 1. 记录成功请求
+            metricsCollector.recordRequest(userId, characterId, modelName, "success");*/
 
-            // 2. 记录响应时间
+            // 1. 记录响应时间
             Long startTime = (Long) attributes.get(REQUEST_START_TIME_KEY);
+            long duration = 0;
             if (startTime != null) {
-                long duration = System.currentTimeMillis() - startTime;
-                metricsCollector.recordResponseTime(userId, characterId, modelName, duration);
+                duration = System.currentTimeMillis() - startTime;
+                /*metricsCollector.recordResponseTime(userId, characterId, modelName, duration);*/
                 log.info("AI 响应时间: {}ms", duration);
             }
 
             // 3. 记录 Token 使用情况
             TokenUsage tokenUsage = responseContext.chatResponse().metadata().tokenUsage();
+            Integer inputTokens = 0;
+            Integer outputTokens = 0;
+            Integer totalTokens = 0;
             if (tokenUsage != null) {
-                Integer inputTokens = tokenUsage.inputTokenCount();
-                Integer outputTokens = tokenUsage.outputTokenCount();
-                Integer totalTokens = tokenUsage.totalTokenCount();
+                inputTokens = tokenUsage.inputTokenCount();
+                outputTokens = tokenUsage.outputTokenCount();
+                totalTokens = tokenUsage.totalTokenCount();
 
-                metricsCollector.recordTokenUsage(userId, characterId, modelName, "input", inputTokens);
-                metricsCollector.recordTokenUsage(userId, characterId, modelName, "output", outputTokens);
-                metricsCollector.recordTokenUsage(userId, characterId, modelName, "total", totalTokens);
 
                 log.info("Token 使用情况 - input: {}, output: {}, total: {}",
                         inputTokens, outputTokens, totalTokens);
             } else {
                 log.warn("响应中没有 Token 使用信息");
             }
+
+            // 4. 异步保存调用记录
+            aiCallLogService.saveCall(
+                    userId, characterId, modelName, memoryId,
+                    "success", inputTokens, outputTokens, totalTokens,
+                    duration, startTime
+            );
 
         } catch (Exception e) {
             log.error("记录 AI 响应信息失败", e);
@@ -104,19 +116,39 @@ public class AiModelMetricsListener implements ChatModelListener{
             Map<Object, Object> attributes = errorContext.attributes();
             MonitorContext context = (MonitorContext) attributes.get(MONITOR_CONTEXT_KEY);
 
-            if (context != null) {
-                // 记录失败请求
-                metricsCollector.recordRequest(
-                        context.getUserId(),
-                        context.getCharacterId(),
-                        "unknown",
-                        "error"
-                );
-
-                log.error("AI 请求失败 - userId: {}, characterId: {}, error: {}",
-                        context.getUserId(), context.getCharacterId(),
-                        errorContext.error().getMessage(), errorContext.error());
+            if (context == null) {
+                log.warn("无法获取监控上下文，跳过记录错误");
+                return;
             }
+
+            String userId = context.getUserId();
+            String characterId = context.getCharacterId();
+            String memoryId = context.getMemoryId();
+
+            // 计算响应时间
+            Long startTime = (Long) attributes.get(REQUEST_START_TIME_KEY);
+            long duration = 0L;
+            if (startTime != null) {
+                duration = System.currentTimeMillis() - startTime;
+            }
+
+            // 记录失败请求到数据库
+            aiCallLogService.saveCall(
+                    userId,
+                    characterId,
+                    "unknown",
+                    memoryId,
+                    "error",
+                    0,
+                    0,
+                    0,
+                    duration,
+                    startTime
+            );
+
+            log.error("AI 请求失败 - userId: {}, characterId: {}, error: {}",
+                    userId, characterId, errorContext.error().getMessage(), errorContext.error());
+
         } catch (Exception e) {
             log.error("记录 AI 错误信息失败", e);
         }

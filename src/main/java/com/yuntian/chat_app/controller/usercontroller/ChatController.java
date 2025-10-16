@@ -37,6 +37,7 @@ public class ChatController {
                memoryId = "chat_" + userIdLong + "_" + characterId + System.currentTimeMillis(); // 默认会话
            }
 
+           //设置监控上下文
            MonitorContext monitorContext = MonitorContext.builder()
                    .userId(userId)
                    .characterId(characterId)
