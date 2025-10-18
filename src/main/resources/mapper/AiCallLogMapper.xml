@@ -49,5 +49,22 @@
         ORDER BY request_ts DESC
         LIMIT 1000
     </select>
+    <!-- 查询指定时间范围内的所有记录 -->
+    <select id="getTokenUsageByDateRange" resultType="map">
+        SELECT
+        request_ts,
+        memory_id,
+        total_tokens AS totalTokens
+        FROM ai_call_log
+        WHERE user_id = #{userId}
+        AND status = 'success'
+        <if test="begin != null">
+            AND request_ts &gt;= #{begin}
+        </if>
+        <if test="end != null">
+            AND request_ts &lt;= #{end}
+        </if>
+        ORDER BY memory_id, request_ts ASC
+    </select>
 
 </mapper>

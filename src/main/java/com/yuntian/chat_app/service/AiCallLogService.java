@@ -1,5 +1,6 @@
 package com.yuntian.chat_app.service;
 
+import com.yuntian.chat_app.dto.DailyTokenDTO;
 import com.yuntian.chat_app.dto.TokenStatDTO;
 import com.yuntian.chat_app.entity.AiCallLogDO;
 import com.yuntian.chat_app.mapper.userMapper.AiCallLogMapper;
@@ -8,8 +9,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
-import java.util.List;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -98,47 +103,115 @@ public class AiCallLogService {
         }
     }
 
-    /**
-     * 查询指定会话的所有调用明细
-     *
-     * @param memoryId 会话 ID
-     * @return 调用明细列表
-     */
-    public List<AiCallLogDO> getCallDetailsByMemoryId(String memoryId) {
-        try {
-            List<AiCallLogDO> details = aiCallLogMapper.findAllByMemoryId(memoryId);
-            log.info("查询调用明细 - memoryId: {}, count: {}", memoryId, details != null ? details.size() : 0);
-            return details != null ? details : List.of();
-
-        } catch (Exception e) {
-            log.error("查询调用明细失败 - memoryId: {}", memoryId, e);
-            return List.of();
-        }
-    }
 
     /**
-     * 查询指定会话的最后一条记录
+     * 查询用户每天的 Token 使用量（使用 Map 传参）
      *
-     * @param memoryId 会话 ID
-     * @return 最后一条记录
+     * @param userId 用户ID
+     * @param begin 开始日期
+     * @param end 结束日期
+     * @return 每天的 Token 统计
      */
-    public AiCallLogDO getLatestCallByMemoryId(String memoryId) {
+    public List<DailyTokenDTO> getDailyTokenUsage(String userId, LocalDate begin, LocalDate end) {
         try {
-            AiCallLogDO latest = aiCallLogMapper.findLatestByMemoryId(memoryId);
+            // 1. 转换为时间范围
+            LocalDateTime beginTime = LocalDateTime.of(begin, LocalTime.MIN);
+            LocalDateTime endTime = LocalDateTime.of(end, LocalTime.MAX);
 
-            if (latest == null) {
-                log.warn("未找到会话记录 - memoryId: {}", memoryId);
-                return null;
+            // 2. 一次查询所有数据
+            List<Map<String, Object>> records = aiCallLogMapper.getTokenUsageByDateRange(
+                    userId, beginTime, endTime);
+
+            log.info("查询到 {} 条记录 - userId: {}, begin: {}, end: {}",
+                    records.size(), userId, begin, end);
+
+            // 3. 按 memory_id 分组，找出每个会话的最后一条记录
+            Map<String, SessionLastRecord> sessionLastRecords = new HashMap<>();
+
+            for (Map<String, Object> record : records) {
+                String memoryId = (String) record.get("memory_id");
+
+                // 解析时间
+                LocalDateTime requestTs = parseDateTime(record.get("request_ts"));
+                if (requestTs == null) {
+                    continue;
+                }
+
+                Long totalTokens = ((Number) record.get("totalTokens")).longValue();
+
+                // 更新该会话的最后一条记录
+                if (!sessionLastRecords.containsKey(memoryId)) {
+                    sessionLastRecords.put(memoryId,
+                            new SessionLastRecord(memoryId, requestTs, totalTokens));
+                } else {
+                    SessionLastRecord existing = sessionLastRecords.get(memoryId);
+                    if (requestTs.isAfter(existing.getRequestTs())) {
+                        sessionLastRecords.put(memoryId,
+                                new SessionLastRecord(memoryId, requestTs, totalTokens));
+                    }
+                }
             }
 
-            log.info("查询最后一条记录 - memoryId: {}, tokens: {}", memoryId, latest.getTotalTokens());
-            return latest;
+            log.info("统计到 {} 个会话", sessionLastRecords.size());
+
+            // 4. 按日期分组统计（每个会话的 token 算在最后一条记录的日期）
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+            Map<String, Long> dailyTokenMap = new HashMap<>();
+
+            for (SessionLastRecord session : sessionLastRecords.values()) {
+                String dateKey = session.getRequestTs().toLocalDate().format(formatter);
+                dailyTokenMap.merge(dateKey, session.getTotalTokens(), Long::sum);
+            }
+
+            // 5. 生成完整的日期列表（补全没有数据的日期为 0）
+            List<DailyTokenDTO> result = new ArrayList<>();
+            LocalDate current = begin;
+
+            while (!current.isAfter(end)) {
+                String dateStr = current.format(formatter);
+                Long tokens = dailyTokenMap.getOrDefault(dateStr, 0L);
+                result.add(new DailyTokenDTO(dateStr, tokens));
+                current = current.plusDays(1);
+            }
+
+            Long totalTokens = result.stream().mapToLong(DailyTokenDTO::getTotalTokens).sum();
+            log.info("统计完成 - userId: {}, 天数: {}, 会话数: {}, 总 Token: {}",
+                    userId, result.size(), sessionLastRecords.size(), totalTokens);
+
+            return result;
 
         } catch (Exception e) {
-            log.error("查询最后一条记录失败 - memoryId: {}", memoryId, e);
-            return null;
+            log.error("查询用户每日 Token 使用量失败 - userId: {}, begin: {}, end: {}",
+                    userId, begin, end, e);
+            return Collections.emptyList();
         }
     }
 
-    
+    /**
+     * 解析数据库返回的时间对象
+     */
+    private LocalDateTime parseDateTime(Object timestampObj) {
+        if (timestampObj instanceof LocalDateTime) {
+            return (LocalDateTime) timestampObj;
+        } else if (timestampObj instanceof java.sql.Timestamp) {
+            return ((java.sql.Timestamp) timestampObj).toLocalDateTime();
+        } else if (timestampObj instanceof java.util.Date) {
+            return new java.sql.Timestamp(((java.util.Date) timestampObj).getTime()).toLocalDateTime();
+        }
+        return null;
+    }
+
+    /**
+     * 内部类：记录每个会话的最后一条记录
+     */
+    @lombok.Data
+    @lombok.AllArgsConstructor
+    private static class SessionLastRecord {
+        private String memoryId;
+        private LocalDateTime requestTs;
+        private Long totalTokens;
+    }
+
+
+
 }
