@@ -5,12 +5,14 @@ import com.yuntian.chat_app.entity.UserFollowCharacter;
 import com.yuntian.chat_app.result.Result;
 import com.yuntian.chat_app.service.userService.FollowService;
 import com.yuntian.chat_app.vo.CharacterFollowVo;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/user/follow")
 public class FollowController {
@@ -53,4 +55,16 @@ public class FollowController {
         List<CharacterFollowVo> followList = followService.getFollowList(userId);
         return Result.success(followList);
     }
-}
+
+    /**
+     * 查看当前角色被关注数量
+     * @param id 角色ID
+     * @return 关注数量
+     */
+     @GetMapping("/count")
+    public Result<Integer> getFollowCount(@RequestParam Long id) {
+         Integer followCount = followService.getFollowCount(id);
+         log.info("获取角色被关注数量 - 角色ID: {}, 关注数量: {}", id, followCount);
+         return Result.success(followCount);
+     }
+    }

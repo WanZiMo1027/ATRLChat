@@ -43,8 +43,6 @@ public class MetricsController {
 
     /**
      * 查询用户每天的 Token 使用量
-     * GET /api/metrics/tokens/daily?begin=2025-10-08&end=2025-10-14
-     *
      * @param begin 开始日期（可选，默认7天前）
      * @param end 结束日期（可选，默认今天）
      * @return 每天的统计数据

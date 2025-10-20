@@ -29,4 +29,11 @@ public interface FollowService {
      * @return 关注列表
      */
     List<CharacterFollowVo> getFollowList(Long userId);
+
+     /**
+     * 获取角色被关注数量
+     * @param id 角色ID
+     * @return 关注数量
+     */
+    Integer getFollowCount(Long id);
 }

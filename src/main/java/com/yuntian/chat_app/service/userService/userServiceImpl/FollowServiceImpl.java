@@ -32,7 +32,7 @@ public class FollowServiceImpl implements FollowService {
     private static final String FOLLOW_KEY = "follow:";
     private static final String FOLLOW_LIST_KEY = "follow:list:";
     private static final int CACHE_TTL_DAYS = 1;
-
+    private static final String FOLLOW_COUNT_KEY = "follow:count:";
     /**
      * 关注角色或取消关注角色
      * @param id 角色ID
@@ -44,13 +44,15 @@ public class FollowServiceImpl implements FollowService {
         Long userId = BaseContext.getCurrentId();
         String followKey = FOLLOW_KEY + userId + ":" + id;
         String followJson = stringRedisTemplate.opsForValue().get(followKey);
+
+        Boolean result;
         //如果在缓存中查到关系，直接更新状态
         if(StrUtil.isNotBlank(followJson)){
             //将followJson转换为UserFollowCharacter对象
             UserFollowCharacter userFollowCharacter = JSONUtil.toBean(followJson, UserFollowCharacter.class);
             //更新状态
             stringRedisTemplate.delete(FOLLOW_LIST_KEY+userId);
-            return updateStatus(userFollowCharacter, followKey);
+            result = updateStatus(userFollowCharacter, followKey);
         }else {
             //如果未查到则从数据库查询
             UserFollowCharacter rel = userFollowCharacterMapper.selectByUserIdAndCharacterId(userId, id);
@@ -70,14 +72,18 @@ public class FollowServiceImpl implements FollowService {
                 String newFollowJson = JSONUtil.toJsonStr(rel);
                 stringRedisTemplate.opsForValue().set(followKey, newFollowJson, CACHE_TTL_DAYS, TimeUnit.DAYS);
                 stringRedisTemplate.delete(FOLLOW_LIST_KEY+userId);
-                return rel.getStatus() == 1;
-            }
-            //如果查得到则更新状态
-            //更新状态
+                result = rel.getStatus() == 1;
+            } else {
+                //更新状态
                 stringRedisTemplate.delete(FOLLOW_LIST_KEY+userId);
-                return updateStatus(rel, followKey);
-
+                result = updateStatus(rel, followKey);
+            }
         }
+
+        // ⭐ 更新关注数缓存
+        updateFollowCountCache(id, result);
+
+        return result;
     }
 
 
@@ -113,6 +119,24 @@ public class FollowServiceImpl implements FollowService {
         return followList;
     }
 
+    /**
+     * 获取角色被关注数量
+     * @param id 角色ID
+     * @return 关注数量
+     */
+    @Override
+    public Integer getFollowCount(Long id) {
+        String followCountJson = stringRedisTemplate.opsForValue().get(FOLLOW_COUNT_KEY + id);
+        if(StrUtil.isNotBlank(followCountJson)){
+            return Integer.parseInt(followCountJson);
+        }
+        //从数据库查询关注数量
+        Integer followCount = userFollowCharacterMapper.selectFollowCount(id);
+        stringRedisTemplate.opsForValue().set(FOLLOW_COUNT_KEY + id, String.valueOf(followCount), CACHE_TTL_DAYS, TimeUnit.DAYS);
+        log.info("获取角色被关注数量 - 角色ID: {}, 关注数量: {}", id, followCount);
+        return followCount;
+    }
+
     //更新状态
     private Boolean updateStatus(UserFollowCharacter userFollowCharacter, String followKey){
         int current = userFollowCharacter.getStatus() == null ? 0 : userFollowCharacter.getStatus();
@@ -124,5 +148,36 @@ public class FollowServiceImpl implements FollowService {
         String newFollowJson = JSONUtil.toJsonStr(userFollowCharacter);
         stringRedisTemplate.opsForValue().set(followKey, newFollowJson, CACHE_TTL_DAYS, TimeUnit.DAYS);
         return next == 1;
+    }
+
+    /**
+     * 更新角色关注数缓存
+     * @param characterId 角色ID
+     * @param isFollow true表示关注，false表示取消关注
+     */
+    private void updateFollowCountCache(Long characterId, Boolean isFollow) {
+        String countKey = FOLLOW_COUNT_KEY + characterId;
+        String countStr = stringRedisTemplate.opsForValue().get(countKey);
+
+        if (StrUtil.isNotBlank(countStr)) {
+            try {
+                // 缓存存在，进行增量更新
+                int currentCount = Integer.parseInt(countStr);
+                int newCount = isFollow ? currentCount + 1 : Math.max(0, currentCount - 1);
+                stringRedisTemplate.opsForValue().set(countKey, String.valueOf(newCount), CACHE_TTL_DAYS, TimeUnit.DAYS);
+                log.info("更新关注数缓存 - 角色ID: {}, 操作: {}, 新计数: {}", characterId, isFollow ? "关注" : "取消", newCount);
+            } catch (NumberFormatException e) {
+                // 缓存值异常，删除让其重新加载
+                log.warn("关注数缓存格式错误，删除缓存 - 角色ID: {}", characterId);
+                stringRedisTemplate.delete(countKey);
+            }
+        } else {
+            // 缓存不存在，从数据库查询并设置
+            Integer followCount = userFollowCharacterMapper.selectFollowCount(characterId);
+            if (followCount != null) {
+                stringRedisTemplate.opsForValue().set(countKey, String.valueOf(followCount), CACHE_TTL_DAYS, TimeUnit.DAYS);
+                log.info("初始化关注数缓存 - 角色ID: {}, 计数: {}", characterId, followCount);
+            }
+        }
     }
 }

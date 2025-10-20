@@ -37,4 +37,12 @@ public interface UserFollowCharacterMapper {
      */
     @Select("select c.id, c.name ,c.image,c.appearance,c.background from user_follow_character u ,`character` c where u.character_id=c.id and u.user_id=#{userId} and status=1")
     List<CharacterFollowVo> selectFollowList(Long userId);
+
+    /**
+     * 获取角色被关注数量
+     * @param id 角色ID
+     * @return 关注数量
+     */
+    @Select("select count(*) from user_follow_character where character_id=#{id} and status=1")
+    Integer selectFollowCount(Long id);
 }
