@@ -24,7 +24,6 @@ public class AiModelMetricsListener implements ChatModelListener{
     private static final String MONITOR_CONTEXT_KEY = "monitorContext";
     private static final String REQUEST_START_TIME_KEY = "requestStartTime";
 
-    //private final AiModelMetricsCollector metricsCollector;
     private final AiCallLogService aiCallLogService;
 
     @Override

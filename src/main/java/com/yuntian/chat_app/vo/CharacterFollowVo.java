@@ -16,4 +16,6 @@ public class CharacterFollowVo implements Serializable {
         private String image;
         private String appearance;
         private String background;
+        private Integer rank;
+        private Integer followCount;
 }

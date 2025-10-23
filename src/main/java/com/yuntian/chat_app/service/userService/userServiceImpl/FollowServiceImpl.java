@@ -13,7 +13,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -33,6 +36,7 @@ public class FollowServiceImpl implements FollowService {
     private static final String FOLLOW_LIST_KEY = "follow:list:";
     private static final int CACHE_TTL_DAYS = 1;
     private static final String FOLLOW_COUNT_KEY = "follow:count:";
+    private static final String RANK_CACHE_KEY = "follow:rank:";
     /**
      * 关注角色或取消关注角色
      * @param id 角色ID
@@ -136,6 +140,100 @@ public class FollowServiceImpl implements FollowService {
         log.info("获取角色被关注数量 - 角色ID: {}, 关注数量: {}", id, followCount);
         return followCount;
     }
+
+    /**
+     * 关注排行榜
+     * @param timeRange 时间范围all/day/week/month
+     * @param limit 返回数量
+     * @return 关注排行榜
+     */
+    @Override
+    public List<CharacterFollowVo> getFollowRank(String timeRange, Integer limit) {
+        if(limit == null || limit <= 0){
+            limit = 10;
+        }
+        if(StrUtil.isBlank(timeRange)){
+            timeRange = "all";
+        }
+        String key = RANK_CACHE_KEY + timeRange + ":" + limit;
+        //从缓存中获取关注排行榜
+        List<CharacterFollowVo> followRank = getCacheRank(key);
+        if(!followRank.isEmpty()){
+            //缓存中存在数据，直接返回
+            return followRank;
+        }
+        LocalDateTime startTime = startTime(timeRange);
+        LocalDateTime endTime = LocalDateTime.now();
+        log.info("获取关注排行榜 - 时间范围: {}, 开始时间: {}, 结束时间: {}, 返回数量: {}", timeRange, startTime, endTime, limit);
+        //从数据库查询关注排行榜
+        followRank = userFollowCharacterMapper.selectFollowRank(startTime, endTime, limit);
+        //设置排名
+        for(int i = 0; i < followRank.size(); i++){
+            followRank.get(i).setRank(i+1);
+        }
+        //将查询结果转换为JSON字符串并缓存
+        String followRankJsonCache = JSONUtil.toJsonStr(followRank);
+        long expireTime;
+        TimeUnit timeUnit;
+        switch (timeRange.toLowerCase()){
+            case "day":
+                expireTime = 10;
+                timeUnit = TimeUnit.MINUTES;
+                break;
+            case "week":
+                expireTime = 20;
+                timeUnit = TimeUnit.MINUTES;
+                break;
+            case "month":
+                expireTime = 1;
+                timeUnit = TimeUnit.HOURS;
+                break;
+            case "all":
+            default:
+                expireTime = 2;
+                timeUnit = TimeUnit.HOURS;
+                break;
+        }
+        stringRedisTemplate.opsForValue().set(key, followRankJsonCache, expireTime, timeUnit);
+        return followRank;
+    }
+
+    /**
+     * 从缓存中获取关注排行榜
+     * @param key 缓存键
+     * @return 关注排行榜
+     */
+    private List<CharacterFollowVo> getCacheRank(String key){
+        String followRankJson = stringRedisTemplate.opsForValue().get(key);
+        if(StrUtil.isNotBlank(followRankJson)){
+            return JSONUtil.toList(followRankJson, CharacterFollowVo.class);
+        }
+        return List.of();
+    }
+
+        /**
+         * 根据时间范围获取开始时间
+         * @param timeRange 时间范围
+         * @return 开始时间
+         */
+        private LocalDateTime startTime(String timeRange){
+            LocalDate now = LocalDate.now();
+            switch (timeRange.toLowerCase()){
+                case "day":
+                    return now.atStartOfDay();
+                case "week":
+                    return now.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                            .atStartOfDay();
+                case "month":
+                    return now.withDayOfMonth(1).atStartOfDay();
+                case "all":
+                default:
+                    //不限时间，返回null
+                    return null;
+            }
+        }
+
+
 
     //更新状态
     private Boolean updateStatus(UserFollowCharacter userFollowCharacter, String followKey){

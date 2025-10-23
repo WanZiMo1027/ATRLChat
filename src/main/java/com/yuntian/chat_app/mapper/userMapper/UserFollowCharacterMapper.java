@@ -2,11 +2,9 @@ package com.yuntian.chat_app.mapper.userMapper;
 
 import com.yuntian.chat_app.entity.UserFollowCharacter;
 import com.yuntian.chat_app.vo.CharacterFollowVo;
-import org.apache.ibatis.annotations.Insert;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Select;
-import org.apache.ibatis.annotations.Update;
+import org.apache.ibatis.annotations.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Mapper
@@ -45,4 +43,14 @@ public interface UserFollowCharacterMapper {
      */
     @Select("select count(*) from user_follow_character where character_id=#{id} and status=1")
     Integer selectFollowCount(Long id);
+    /**
+     * 查询关注排行榜 - 支持时间维度
+     * @param startTime 开始时间（null表示不限制）
+     * @param endTime 结束时间（null表示不限制）
+     * @param limit 返回数量
+     * @return 排行榜列表
+     */
+    List<CharacterFollowVo> selectFollowRank(@Param("startTime") LocalDateTime startTime,
+                                             @Param("endTime") LocalDateTime endTime,
+                                             @Param("limit") Integer limit);
 }

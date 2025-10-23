@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yuntian.chat_app.mapper.userMapper.UserFollowCharacterMapper">
+
+    <select id="selectFollowRank" resultType="com.yuntian.chat_app.vo.CharacterFollowVo">
+        SELECT
+        c.id ,c.name ,c.image,NULL,COUNT(ufc.character_id) AS followCount
+        FROM
+        user_follow_character ufc
+        INNER JOIN
+        `character` c ON ufc.character_id = c.id
+        WHERE
+        ufc.status = 1
+        <if test="startTime != null">
+            AND ufc.create_time &gt;= #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND ufc.create_time &lt;= #{endTime}
+        </if>
+        GROUP BY
+        ufc.character_id
+        ORDER BY
+        followCount DESC
+        LIMIT #{limit}
+    </select>
+</mapper>

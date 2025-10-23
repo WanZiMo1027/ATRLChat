@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Slf4j
@@ -67,4 +68,24 @@ public class FollowController {
          log.info("获取角色被关注数量 - 角色ID: {}, 关注数量: {}", id, followCount);
          return Result.success(followCount);
      }
+
+    /**
+     * 关注排行榜
+     * @return 关注排行榜
+     */
+     @GetMapping("/rank")
+    public Result<List<CharacterFollowVo>> getFollowRank(@RequestParam(defaultValue = "all") String timeRange,
+                                                         @RequestParam(required = false, defaultValue = "10") Integer limit){
+         log.info("获取关注排行榜 - 时间范围: {}, 数量: {}", timeRange, limit);
+         // 参数校验
+         if (!List.of("all", "day", "week", "month").contains(timeRange.toLowerCase())) {
+             return Result.error("时间范围参数错误，支持：all/day/week/month");
+         }
+
+         if (limit <= 0 || limit > 100) {
+             return Result.error("返回数量范围：1-100");
+         }
+        List<CharacterFollowVo> followRank = followService.getFollowRank(timeRange, limit);
+        return Result.success(followRank);
     }
+}

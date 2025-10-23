@@ -36,4 +36,12 @@ public interface FollowService {
      * @return 关注数量
      */
     Integer getFollowCount(Long id);
+
+     /**
+     * 关注排行榜
+     * @param timeRange 时间范围all/day/week/month
+     * @param limit 返回数量
+     * @return 关注排行榜
+     */
+    List<CharacterFollowVo> getFollowRank(String timeRange,Integer limit);
 }
