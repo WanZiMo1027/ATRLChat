@@ -34,7 +34,7 @@ public class ChatController {
 
            // 如果没有传入memoryId，使用默认会话
            if (memoryId == null || memoryId.isEmpty()) {
-               memoryId = "chat_" + userIdLong + "_" + characterId + System.currentTimeMillis(); // 默认会话
+               memoryId = "chat_" + userIdLong + "_" + characterId + "_"+ System.currentTimeMillis(); // 默认会话
            }
 
            //设置监控上下文

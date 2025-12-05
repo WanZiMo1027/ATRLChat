@@ -4,6 +4,7 @@ import cn.hutool.core.util.IdUtil;
 import cn.hutool.json.JSONUtil;
 import com.yuntian.chat_app.context.BaseContext;
 import com.yuntian.chat_app.entity.User;
+import com.yuntian.chat_app.exception.UserException;
 import com.yuntian.chat_app.mapper.userMapper.UserMapper;
 import com.yuntian.chat_app.service.userService.UserService;
 
@@ -40,14 +41,14 @@ public class UserServiceImpl implements UserService {
         String password = user.getPassword();
         User user1 = userMapper.selectByUsername(username);
         if (user1 == null) {
-            throw new RuntimeException("用户不存在");
+            throw new UserException(UserException.USER_NOT_FOUND, "用户不存在");
         }
         password = DigestUtils.md5DigestAsHex(password.getBytes());
         if (!password.equals(user1.getPassword())) {
-            throw new RuntimeException("密码错误");
+            throw new UserException(UserException.PASSWORD_ERROR, "密码错误");
         }
         if (user1.getIsDeleted() == 1) {
-            throw new RuntimeException("用户已被删除");
+            throw new UserException(UserException.USER_NOT_FOUND, "用户已被删除");
         }
 
 

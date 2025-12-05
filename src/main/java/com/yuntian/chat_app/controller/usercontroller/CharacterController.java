@@ -17,7 +17,7 @@ import java.util.Map;
 public class CharacterController {
 
     @Autowired
-    private CharacterService characterService;
+    private  CharacterService characterService;
 
     @Autowired
     private FollowService followService;
@@ -27,8 +27,8 @@ public class CharacterController {
     /**
      * 新增角色
      */
-    @RequestMapping("/add")
-    public Result addCharacter(@RequestParam Character character){
+    @PostMapping("/add")
+    public Result addCharacter(@RequestBody Character character){
         characterService.addCharacter(character);
         return Result.success(character.getId());
     }
