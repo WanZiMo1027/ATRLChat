@@ -1,6 +1,7 @@
 package com.yuntian.chat_app.service.userService;
 
 
+import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
@@ -21,11 +22,21 @@ public interface ConsultantService {
     @SystemMessage(fromResource = "system.txt")
     public String chat(@MemoryId String memoryId,
                        @UserMessage String message,
+                       @UserMessage  ImageContent imageContent,
                        @V("name") String name,
                        @V("appearance") String appearance,
                        @V("background") String background,
                        @V("personality") String personality,
                        @V("classic_lines") String classicLines
     ) ;
+    @SystemMessage(fromResource = "system.txt")
+    public String chat(@MemoryId String memoryId,
+                     @UserMessage String message,
+                     @V("name") String name,
+                     @V("appearance") String appearance,
+                     @V("background") String background,
+                     @V("personality") String personality,
+                     @V("classic_lines") String classicLines
+    );
 
 }

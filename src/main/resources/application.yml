@@ -20,13 +20,16 @@ spring:
     access-key-id: ${spring.alioss.access-key-id}
     access-key-secret: ${spring.alioss.access-key-secret}
     bucket-name: ${spring.alioss.bucket-name}
-
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 20MB   # 整个请求最大限制（包含所有文件和表单数据）
 langchain4j:
   open-ai:
     chat-model:
       base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
       api-key: ${API-KEY}
-      model-name: qwen-plus
+      model-name: qwen-vl-plus
       log-requests: true
       log-responses: true
 management:

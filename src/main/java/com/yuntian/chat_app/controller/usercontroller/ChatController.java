@@ -8,9 +8,12 @@ import com.yuntian.chat_app.entity.Character;
 import com.yuntian.chat_app.result.Result;
 import com.yuntian.chat_app.service.userService.ConsultantService;
 import com.yuntian.chat_app.service.userService.userServiceImpl.ChatHistoryService;
+import dev.langchain4j.data.message.ImageContent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
@@ -27,14 +30,16 @@ public class ChatController {
 
 
 
-    @GetMapping(value = "/ai/chat", produces = "text/html;charset=UTF-8")
-    public String chatStream(String memoryId,String userId, String characterId, String message, Character character) {
+    @PostMapping(value = "/ai/chat", produces = "text/html;charset=UTF-8")
+    public String chatStream(String memoryId, String userId, String characterId, String message,
+                             @RequestParam(value = "imageFile", required = false) MultipartFile imageFile,
+                             Character character) {
        try {
            Long userIdLong = Long.parseLong(userId);
 
            // 如果没有传入memoryId，使用默认会话
            if (memoryId == null || memoryId.isEmpty()) {
-               memoryId = "chat_" + userIdLong + "_" + characterId + "_"+ System.currentTimeMillis(); // 默认会话
+               memoryId = "chat:" + userIdLong + "_" + characterId + "_"+ System.currentTimeMillis(); // 默认会话
            }
 
            //设置监控上下文
@@ -55,8 +60,24 @@ public class ChatController {
            String personality = character != null && character.getPersonality() != null ? character.getPersonality() : "";
            String classicLines = character != null && character.getClassicLines() != null ? character.getClassicLines() : "";
 
-           String response = consultantService.chat(memoryId, message, name, appearance,
-                   background, personality, classicLines);
+           ImageContent imageContent = null;
+           if (imageFile != null && !imageFile.isEmpty()) {
+               try{
+                   String base64Image = Base64.getEncoder().encodeToString(imageFile.getBytes());
+                   String mimeType = imageFile.getContentType();
+                   imageContent = ImageContent.from(base64Image, mimeType);
+               }catch (Exception e){
+                   return String.valueOf(Result.error("图片处理失败: " + e.getMessage()));
+               }
+           }
+           String response ;
+           if (imageContent != null) {
+               response = consultantService.chat(memoryId, message, imageContent, name, appearance,
+                       background, personality, classicLines);
+           }else {
+               response = consultantService.chat(memoryId, message, name, appearance,
+                       background, personality, classicLines);
+           }
 
            return response;
        } catch (Exception e) {
