@@ -1,4 +1,4 @@
-package com.yuntian.chat_app.service;
+package com.yuntian.chat_app.service.userService;
 
 import com.yuntian.chat_app.dto.DailyTokenDTO;
 import com.yuntian.chat_app.dto.TokenStatDTO;
@@ -14,7 +14,6 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j

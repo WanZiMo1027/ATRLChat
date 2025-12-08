@@ -5,7 +5,7 @@ import com.yuntian.chat_app.context.BaseContext;
 import com.yuntian.chat_app.dto.DailyTokenDTO;
 import com.yuntian.chat_app.dto.TokenStatDTO;
 import com.yuntian.chat_app.result.Result;
-import com.yuntian.chat_app.service.AiCallLogService;
+import com.yuntian.chat_app.service.userService.AiCallLogService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;

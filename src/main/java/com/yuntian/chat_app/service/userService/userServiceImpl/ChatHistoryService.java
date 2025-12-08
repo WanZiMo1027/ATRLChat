@@ -1,21 +1,14 @@
 package com.yuntian.chat_app.service.userService.userServiceImpl;
 
-import dev.langchain4j.data.message.AiMessage;
-import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.data.message.ChatMessageType;
+import dev.langchain4j.data.message.*;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.ChatMemoryProvider;
-import dev.langchain4j.data.message.UserMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-
-
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -44,10 +37,22 @@ public class ChatHistoryService {
                     Map<String, String> chatItem = new HashMap<>();
                     chatItem.put("type", msg.type() == ChatMessageType.USER ? "user" : "ai");
 
-                    // 根据消息类型获取内容
+                    // 核心修改部分：兼容多模态消息（图片+文字）
                     String content = "";
                     if (msg instanceof UserMessage) {
-                        content = ((UserMessage) msg).singleText();
+                        UserMessage userMsg = (UserMessage) msg;
+                        // 不再使用 singleText()，因为它只能处理纯文本
+                        // 改为遍历 contents() 手动拼接
+                        StringBuilder sb = new StringBuilder();
+                        for (Content c : userMsg.contents()) {
+                            if (c instanceof TextContent) {
+                                sb.append(((TextContent) c).text());
+                            } else if (c instanceof ImageContent) {
+                                // 遇到图片，标记一下，防止报错，同时也让前端知道这里发过图
+                                sb.append(" [发送了一张图片] ");
+                            }
+                        }
+                        content = sb.toString();
                     } else if (msg instanceof AiMessage) {
                         content = ((AiMessage) msg).text();
                     }
@@ -65,6 +70,7 @@ public class ChatHistoryService {
      * 获取用户与指定角色的所有会话列表
      */
     public List<Map<String, Object>> getHistoryList(Long userId, String characterId) {
+        // ... (保持不变) ...
         try {
             // Redis中存储会话列表的key
             String listKey = "chat_sessions:" + userId + ":" + characterId;
@@ -120,6 +126,7 @@ public class ChatHistoryService {
      * 创建新的聊天会话并记录到Redis
      */
     public String createNewSession(Long userId, String characterId) {
+        // ... (保持不变) ...
         // 生成新的sessionId
         long timestamp = System.currentTimeMillis();
         String sessionId = "chat_" + userId + "_" + characterId + "_" + timestamp;
@@ -154,6 +161,7 @@ public class ChatHistoryService {
      * 更新会话的最后活动时间（每次聊天时调用）
      */
     public void updateSessionActivity(String sessionId) {
+        // ... (保持不变) ...
         try {
             long currentTime = System.currentTimeMillis();
             String sessionInfoKey = "session_info:" + sessionId;
@@ -171,6 +179,7 @@ public class ChatHistoryService {
      * 获取会话的最后一条消息作为预览
      */
     private String getLastMessagePreview(String sessionId) {
+        // ... (保持不变) ...
         try {
             List<Map<String, String>> messages = getChatHistory(sessionId);
             if (!messages.isEmpty()) {
@@ -185,10 +194,12 @@ public class ChatHistoryService {
         }
         return "暂无消息";
     }
+
     /**
      * 确保会话被跟踪到Redis会话列表中 - 关键方法
      */
     public void ensureSessionTracked(Long userId, String characterId, String sessionId) {
+        // ... (保持不变) ...
         try {
             String listKey = "chat_sessions:" + userId + ":" + characterId;
             String sessionInfoKey = "session_info:" + sessionId;
@@ -210,8 +221,6 @@ public class ChatHistoryService {
                 sessionInfo.put("createTime", String.valueOf(currentTime));
                 sessionInfo.put("updateTime", String.valueOf(currentTime));
 
-
-
                 redisTemplate.opsForHash().putAll(sessionInfoKey, sessionInfo);
 
                 // 设置过期时间
@@ -226,4 +235,3 @@ public class ChatHistoryService {
         }
     }
 }
-
