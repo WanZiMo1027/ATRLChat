@@ -249,4 +249,18 @@ public class CharacterServiceImpl implements CharacterService {
 
         return characters;
     }
+
+     /**
+     * 检索角色
+     * @param name 角色名称
+     * @param personality 角色性格
+     * @return 角色列表
+     */
+     @Override
+    public List<Character> searchCharacter(String name, String personality) {
+        log.info("检索角色，名称：{}，性格：{}", name, personality);
+        // 从数据库查询
+        List<Character> characters = characterMapper.selectByKeyword(name, personality);
+        return characters;
+    }
 }

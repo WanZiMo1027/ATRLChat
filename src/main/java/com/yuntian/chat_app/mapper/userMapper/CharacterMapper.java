@@ -16,8 +16,9 @@ public interface CharacterMapper {
 
     /**
      * 更新角色头像
+     *
      * @param characterId 角色ID
-     * @param imageUrl 头像URL
+     * @param imageUrl    头像URL
      * @return 更新结果
      */
     int updateImage(@Param("characterId") Long characterId,
@@ -25,6 +26,7 @@ public interface CharacterMapper {
 
     /**
      * 根据ID更新角色信息
+     *
      * @param character 角色对象
      */
     @Update("update `character` set image=#{image} where id=#{id}")
@@ -32,6 +34,7 @@ public interface CharacterMapper {
 
     /**
      * 获取当前用户的所有角色列表（我的模型）
+     *
      * @param userId 用户ID
      * @return 角色列表
      */
@@ -39,14 +42,26 @@ public interface CharacterMapper {
 
     /**
      * 获取所有角色列表（公开模型）
+     *
      * @return 角色列表
      */
     List<Character> selectAll();
 
     /**
      * 根据ID查询角色详情
+     *
      * @param id 角色ID
      * @return 角色对象
      */
     Character selectById(@Param("id") Long id);
+
+    /**
+     * 检索角色
+     *
+     * @param name        角色名称
+     * @param personality 角色性格
+     * @return 角色列表
+     */
+    List<Character> selectByKeyword(@Param("name") String name,
+                                    @Param("personality") String personality);
 }

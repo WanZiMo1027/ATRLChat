@@ -33,6 +33,21 @@ public class CharacterController {
         return Result.success(character.getId());
     }
 
+    /**
+     * 检索角色
+     * @param name 角色名称
+     * @param personality 角色性格
+     * @return 角色列表
+     */
+    @GetMapping("/search")
+    public Result searchCharacter(@RequestParam(required = false) String name,
+                                  @RequestParam(required = false) String personality){
+
+        List<Character> characters = characterService.searchCharacter(name, personality);
+        return Result.success(characters);
+
+    }
+
 
     /**
      * 我的模型角色列表
@@ -86,5 +101,6 @@ public class CharacterController {
         }
         return Result.success("取消关注");
     }
+
 
 }

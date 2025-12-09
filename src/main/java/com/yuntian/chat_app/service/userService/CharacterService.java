@@ -42,4 +42,12 @@ public interface CharacterService {
      * @return 角色列表
      */
     List<Character> getPublicCharacter();
+
+     /**
+     * 检索角色
+     * @param name 角色名称
+     * @param personality 角色性格
+     * @return 角色列表
+     */
+    List<Character> searchCharacter(String name, String personality);
 }

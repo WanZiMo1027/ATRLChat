@@ -52,4 +52,19 @@
         FROM `character`
         WHERE is_deleted = 0 AND is_public = 1
     </select>
+        <!-- 检索角色 -->
+    <select id="selectByKeyword" resultMap="BaseResultMap">
+        SELECT id, name, image, appearance, background, personality, classic_lines
+        FROM `character`
+        <where>
+            <if test="name != null and name != ''">
+                AND name LIKE concat('%', #{name}, '%')
+            </if>
+            <if test="personality != null and personality != ''">
+                AND personality LIKE concat('%', #{personality}, '%')
+            </if>
+                AND is_public = 1 AND is_deleted = 0
+        </where>
+        ORDER BY create_time DESC
+    </select>
 </mapper>
