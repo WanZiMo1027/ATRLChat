@@ -49,6 +49,17 @@ public class CharacterController {
     }
 
     /**
+     * 删除角色
+     * @param characterId 角色ID
+     * @return 操作结果
+     */
+    @GetMapping("/delete")
+    public Result deleteCharacter(@RequestParam Long characterId){
+        characterService.deleteCharacter(characterId);
+        return Result.success(characterId);
+    }
+
+    /**
      * 检索角色
      * @param name 角色名称
      * @param personality 角色性格

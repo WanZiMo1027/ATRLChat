@@ -255,6 +255,31 @@ public class CharacterServiceImpl implements CharacterService {
         log.info("角色信息更新完成，角色ID：{}，用户ID：{}", character.getId(), existingCharacter.getUserId());
     }
 
+    @Override
+    public void deleteCharacter(Long characterId) {
+        // 1. 先查询角色信息(需要userId等信息来清理缓存)
+        Character character = characterMapper.selectById(characterId);
+        if (character == null) {
+            log.warn("角色不存在，角色ID：{}", characterId);
+            throw new RuntimeException("角色不存在");
+        }
+
+        // 2. 权限校验(确保只能删除自己的角色)
+        Long currentUserId = BaseContext.getCurrentId();
+        if (!character.getUserId().equals(currentUserId)) {
+            log.error("无权删除他人角色，当前用户ID：{}，角色所属用户ID：{}", currentUserId, character.getUserId());
+            throw new RuntimeException("无权删除他人角色");
+        }
+
+        // 3. 逻辑删除数据库记录
+        characterMapper.deleteById(characterId);
+        log.info("角色已逻辑删除，角色ID：{}，用户ID：{}", characterId, character.getUserId());
+
+        // 4. 清理三层Redis缓存
+        deleteCharacterCaches(character);
+
+    }
+
     /**
      * 更新Redis中的角色头像（仅角色详情缓存）
      */
@@ -313,6 +338,34 @@ public class CharacterServiceImpl implements CharacterService {
             log.info("角色详情已更新到Redis缓存，角色ID：{}，用户ID：{}", character.getId(), character.getUserId());
         } catch (Exception e) {
             log.error("更新角色详情到Redis失败：{}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 删除角色相关的所有缓存
+     * @param character 角色对象
+     */
+    private void deleteCharacterCaches(Character character) {
+        try {
+            // ① 删除角色详情缓存
+            String detailKey = CHARACTER_DETAIL_KEY + character.getId();
+            Boolean detailDeleted = stringRedisTemplate.delete(detailKey);
+            log.info("角色详情缓存删除：key={}，deleted={}", detailKey, detailDeleted);
+
+            // ② 删除用户角色列表缓存
+            evictUserCharacterListCache(character.getUserId());
+
+            // ③ 如果是公开角色，删除角色广场缓存
+            if (character.getIsPublic() != null && character.getIsPublic() == 1) {
+                Boolean squareDeleted = stringRedisTemplate.delete(CHARACTER_SQUARE_KEY);
+                log.info("角色广场缓存删除：key={}，deleted={}", CHARACTER_SQUARE_KEY, squareDeleted);
+            }
+
+            log.info("角色相关缓存已全部清理，角色ID：{}", character.getId());
+
+        } catch (Exception e) {
+            log.error("清理角色缓存失败，角色ID：{}，错误：{}", character.getId(), e.getMessage(), e);
+            // 缓存删除失败不阻断主流程，但需要记录日志
         }
     }
 

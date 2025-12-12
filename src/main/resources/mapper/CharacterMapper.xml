@@ -43,7 +43,7 @@
             <if test="background != null">background = #{background},</if>
             <if test="personality != null">personality = #{personality},</if>
             <if test="classicLines != null">classic_lines = #{classicLines},</if>
-            update_time = NOW(),
+            update_time = NOW()
         </set>
         WHERE id = #{id} AND is_deleted = 0
     </update>
@@ -56,7 +56,7 @@
     </select>
     <!-- 根据ID查询角色详情 -->
     <select id="selectById" resultMap="BaseResultMap">
-        SELECT id, name, image, is_public, background, personality, classic_lines,appearance
+        SELECT id, name, image, is_public, background, personality, classic_lines,appearance ,user_id
         FROM `character`
         WHERE id = #{id} AND is_deleted = 0
     </select>

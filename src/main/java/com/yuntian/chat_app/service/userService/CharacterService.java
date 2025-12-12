@@ -65,4 +65,9 @@ public interface CharacterService {
      * @param character 角色对象
      */
     void updateCharacter(Character character);
+    /**
+     * 删除角色
+     * @param characterId 角色ID
+     */
+    void deleteCharacter(Long characterId);
 }

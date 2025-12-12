@@ -67,5 +67,17 @@ public interface CharacterMapper {
     void updateIsPublic(@Param("id") Long id,
                         @Param("isPublic") Integer isPublic);
 
+     /**
+     * 根据ID更新角色信息
+     * @param character 角色对象
+     */
     void updateInfoById(Character character);
+
+    /**
+     * 根据ID删除角色（逻辑删除）
+     *
+     * @param characterId 角色ID
+     */
+    @Update("update `character` set is_deleted=1 where id=#{characterId}")
+    void deleteById(Long characterId);
 }
