@@ -5,6 +5,7 @@ import com.yuntian.chat_app.entity.Character;
 import com.yuntian.chat_app.result.Result;
 import com.yuntian.chat_app.service.userService.CharacterService;
 import com.yuntian.chat_app.service.userService.FollowService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/character")
 public class CharacterController {
@@ -46,6 +48,34 @@ public class CharacterController {
         List<Character> characters = characterService.searchCharacter(name, personality);
         return Result.success(characters);
 
+    }
+
+    /**
+     * 查询角色是否公开
+     * @param characterId 角色ID
+     * @return 角色公开状态
+     */
+    @GetMapping("/isPublicOrNot")
+    public Result getCharacterIsPublic(@RequestParam Long characterId){
+        Character characterById = characterService.getCharacterById(characterId);
+        Integer isPublic = characterById.getIsPublic();
+        return Result.success(isPublic);
+    }
+
+    /**
+     * 公开角色或私密角色
+     * @param characterId 角色ID
+     * 0-不公开，1-公开
+     * @return 操作结果
+     */
+    @PostMapping("/isPublic")
+    public Result<Map<Integer,Long>> publicCharacter(@RequestParam Long characterId){
+
+        Integer result =  characterService.publicOrNotCharacter(characterId);
+        Map<Integer,Long> map = new HashMap<>();
+        map.put(result,characterId);
+        log.info("公开角色或私密角色，角色ID：{}，公开状态：{}", characterId, result);
+        return Result.success(map);
     }
 
 

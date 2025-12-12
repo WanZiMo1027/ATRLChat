@@ -2,10 +2,7 @@ package com.yuntian.chat_app.mapper.userMapper;
 
 
 import com.yuntian.chat_app.entity.Character;
-import org.apache.ibatis.annotations.Insert;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Update;
+import org.apache.ibatis.annotations.*;
 
 import java.util.List;
 
@@ -64,4 +61,9 @@ public interface CharacterMapper {
      */
     List<Character> selectByKeyword(@Param("name") String name,
                                     @Param("personality") String personality);
+
+
+     @Update("update `character` set is_public=#{isPublic} where id=#{id}")
+    void updateIsPublic(@Param("id") Long id,
+                        @Param("isPublic") Integer isPublic);
 }

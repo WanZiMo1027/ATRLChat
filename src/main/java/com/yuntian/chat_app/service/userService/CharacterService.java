@@ -50,4 +50,14 @@ public interface CharacterService {
      * @return 角色列表
      */
     List<Character> searchCharacter(String name, String personality);
+
+     /**
+     * 公开角色
+     * @param characterId 角色ID
+     * 0-不公开，1-公开
+     * @return 操作结果，0-失败，1-成功
+     */
+    Integer publicOrNotCharacter(Long characterId);
+
+
 }

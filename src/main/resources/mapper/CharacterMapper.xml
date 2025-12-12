@@ -14,6 +14,7 @@
         <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
         <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
         <result column="is_deleted" property="isDeleted" jdbcType="TINYINT"/>
+        <result column="is_public" property="isPublic" jdbcType="TINYINT"/>
     </resultMap>
 
     <!-- 插入角色 -->
@@ -42,19 +43,19 @@
     </select>
     <!-- 根据ID查询角色详情 -->
     <select id="selectById" resultMap="BaseResultMap">
-        SELECT id, name, image, appearance, background, personality, classic_lines
+        SELECT id, name, image, is_public, background, personality, classic_lines,appearance
         FROM `character`
         WHERE id = #{id} AND is_deleted = 0
     </select>
     <!-- 获取所有角色列表（公开模型） -->
     <select id="selectAll" resultType="com.yuntian.chat_app.entity.Character">
-        SELECT id, name, image, appearance, background, personality, classic_lines
+        SELECT id, name, image, appearance, background, personality, classic_lines,appearance
         FROM `character`
         WHERE is_deleted = 0 AND is_public = 1
     </select>
         <!-- 检索角色 -->
     <select id="selectByKeyword" resultMap="BaseResultMap">
-        SELECT id, name, image, appearance, background, personality, classic_lines
+        SELECT id, name, image, appearance, background, personality, classic_lines,appearance
         FROM `character`
         <where>
             <if test="name != null and name != ''">

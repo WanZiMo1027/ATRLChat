@@ -7,6 +7,7 @@ import cn.hutool.json.JSONUtil;
 import com.yuntian.chat_app.context.BaseContext;
 import com.yuntian.chat_app.entity.Character;
 import com.yuntian.chat_app.mapper.userMapper.CharacterMapper;
+import com.yuntian.chat_app.result.Result;
 import com.yuntian.chat_app.service.userService.CharacterService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -172,35 +173,6 @@ public class CharacterServiceImpl implements CharacterService {
         }
     }
 
-    /**
-     * 写入/刷新角色详情缓存
-     */
-    private void updateCharacterDetailCache(Character character) {
-        try {
-            String characterKey = CHARACTER_DETAIL_KEY + character.getId();
-            String characterJson = JSONUtil.toJsonStr(character);
-            stringRedisTemplate
-                    .opsForValue()
-                    .set(characterKey, characterJson, CACHE_TTL_DAYS, TimeUnit.DAYS);
-            log.info("角色详情已更新到Redis缓存，角色ID：{}，用户ID：{}", character.getId(), character.getUserId());
-        } catch (Exception e) {
-            log.error("更新角色详情到Redis失败：{}", e.getMessage(), e);
-        }
-    }
-
-    /**
-     * 删除用户角色列表缓存，读时重建
-     */
-    private void evictUserCharacterListCache(Long userId) {
-        try {
-            String userCharacterListKey = CHARACTER_LIST_KEY + userId;
-            Boolean deleted = stringRedisTemplate.delete(userCharacterListKey);
-            log.info("用户角色列表缓存删除：key={}，deleted={}", userCharacterListKey, deleted);
-        } catch (Exception e) {
-            log.warn("删除用户角色列表缓存失败，用户ID：{}", userId, e);
-        }
-    }
-
     @Override
     public Character getCharacterById(Long id) {
         log.info("获取角色详情，角色ID：{}", id);
@@ -263,4 +235,54 @@ public class CharacterServiceImpl implements CharacterService {
         List<Character> characters = characterMapper.selectByKeyword(name, personality);
         return characters;
     }
+
+    @Override
+    public Integer publicOrNotCharacter(Long characterId) {
+        Character character = characterMapper.selectById(characterId);
+
+        if (character == null) {
+            log.info("角色不存在，角色ID：{}", characterId);
+            throw new RuntimeException("角色不存在");
+        }
+
+        // 切换公开状态
+        Integer newStatus = character.getIsPublic() == 0 ? 1 : 0;
+
+
+        character.setIsPublic(newStatus);
+        characterMapper.updateIsPublic(characterId, newStatus);
+
+        updateCharacterDetailCache(character);           // 更新详情缓存
+        evictUserCharacterListCache(character.getUserId());     // 删除用户列表缓存
+        stringRedisTemplate.delete(CHARACTER_SQUARE_KEY);            // 删除广场缓存
+        return newStatus;
+    }
+    /**
+     * 删除用户角色列表缓存，读时重建
+     */
+    private void evictUserCharacterListCache(Long userId) {
+        try {
+            String userCharacterListKey = CHARACTER_LIST_KEY + userId;
+            Boolean deleted = stringRedisTemplate.delete(userCharacterListKey);
+            log.info("用户角色列表缓存删除：key={}，deleted={}", userCharacterListKey, deleted);
+        } catch (Exception e) {
+            log.warn("删除用户角色列表缓存失败，用户ID：{}", userId, e);
+        }
+    }
+    /**
+     * 写入/刷新角色详情缓存
+     */
+    private void updateCharacterDetailCache(Character character) {
+        try {
+            String characterKey = CHARACTER_DETAIL_KEY + character.getId();
+            String characterJson = JSONUtil.toJsonStr(character);
+            stringRedisTemplate
+                    .opsForValue()
+                    .set(characterKey, characterJson, CACHE_TTL_DAYS, TimeUnit.DAYS);
+            log.info("角色详情已更新到Redis缓存，角色ID：{}，用户ID：{}", character.getId(), character.getUserId());
+        } catch (Exception e) {
+            log.error("更新角色详情到Redis失败：{}", e.getMessage(), e);
+        }
+    }
+
 }
