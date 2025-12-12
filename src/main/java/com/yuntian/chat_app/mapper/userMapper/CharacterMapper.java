@@ -66,4 +66,6 @@ public interface CharacterMapper {
      @Update("update `character` set is_public=#{isPublic} where id=#{id}")
     void updateIsPublic(@Param("id") Long id,
                         @Param("isPublic") Integer isPublic);
+
+    void updateInfoById(Character character);
 }

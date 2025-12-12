@@ -34,9 +34,22 @@
         SET image = #{imageUrl}, update_time = NOW()
         WHERE id = #{characterId} AND is_deleted = 0
     </update>
+    <!-- 更新角色信息 -->
+    <update id="updateInfoById">
+        UPDATE `character`
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="appearance != null">appearance = #{appearance},</if>
+            <if test="background != null">background = #{background},</if>
+            <if test="personality != null">personality = #{personality},</if>
+            <if test="classicLines != null">classic_lines = #{classicLines},</if>
+            update_time = NOW(),
+        </set>
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
     <!-- 根据用户ID查询角色列表 -->
     <select id="selectByUserId" resultMap="BaseResultMap">
-        SELECT id, name, image, appearance
+        SELECT id, name, image, appearance ,is_public
         FROM `character`
         WHERE user_id = #{userId} AND is_deleted = 0
         ORDER BY create_time DESC

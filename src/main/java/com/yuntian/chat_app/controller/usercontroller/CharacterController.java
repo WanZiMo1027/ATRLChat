@@ -36,6 +36,19 @@ public class CharacterController {
     }
 
     /**
+     * 修改角色信息
+     *
+     */
+    @PostMapping("/update")
+    public Result updateCharacter(@RequestBody Character character){
+        if (character.getId() == null) {
+            return Result.error("角色ID不能为空");
+        }
+        characterService.updateCharacter(character);
+        return Result.success(character.getId());
+    }
+
+    /**
      * 检索角色
      * @param name 角色名称
      * @param personality 角色性格

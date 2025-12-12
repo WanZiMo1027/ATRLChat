@@ -140,38 +140,6 @@ public class CharacterServiceImpl implements CharacterService {
         return characters;
     }
 
-    /**
-     * 更新Redis中的角色头像（仅角色详情缓存）
-     */
-    private void updateCharacterImageInRedis(Long characterId, String imageUrl) {
-        try {
-            String characterKey = CHARACTER_DETAIL_KEY + characterId;
-            String characterJson = stringRedisTemplate.opsForValue().get(characterKey);
-
-            Character character;
-            if (StrUtil.isNotBlank(characterJson)) {
-                character = JSONUtil.toBean(characterJson, Character.class);
-                character.setImage(imageUrl);
-            } else {
-                // 从数据库加载并更新
-                character = characterMapper.selectById(characterId);
-                if (character == null) {
-                    log.warn("在数据库中未找到角色，无法更新Redis缓存，角色ID：{}", characterId);
-                    return;
-                }
-                character.setImage(imageUrl);
-            }
-
-            stringRedisTemplate
-                    .opsForValue()
-                    .set(characterKey, JSONUtil.toJsonStr(character), CACHE_TTL_DAYS, TimeUnit.DAYS);
-
-            log.info("Redis角色头像更新成功，角色ID：{}", characterId);
-
-        } catch (Exception e) {
-            log.error("更新Redis角色头像失败：{}", e.getMessage(), e);
-        }
-    }
 
     @Override
     public Character getCharacterById(Long id) {
@@ -257,6 +225,69 @@ public class CharacterServiceImpl implements CharacterService {
         stringRedisTemplate.delete(CHARACTER_SQUARE_KEY);            // 删除广场缓存
         return newStatus;
     }
+
+    @Override
+    public void updateCharacter(Character character) {
+        // 1. 先从数据库查出完整的角色对象(包含userId等)
+        Character existingCharacter = characterMapper.selectById(character.getId());
+        if (existingCharacter == null) {
+            throw new RuntimeException("角色不存在");
+        }
+
+        // 2. 更新数据库
+        characterMapper.updateInfoById(character);
+
+        // 3. 重新查询最新数据(确保缓存的是最新值)
+        Character updated = characterMapper.selectById(character.getId());
+
+        // 4. 更新详情缓存
+        updateCharacterDetailCache(updated);
+
+        // 5. 删除用户列表缓存(让下次查询时重建)
+        evictUserCharacterListCache(existingCharacter.getUserId());
+
+        // 6. 如果修改的是公开角色,需要删除广场缓存
+        if (existingCharacter.getIsPublic() == 1 || updated.getIsPublic() == 1) {
+            stringRedisTemplate.delete(CHARACTER_SQUARE_KEY);
+            log.info("角色广场缓存已删除(updateCharacter)，角色ID：{}", character.getId());
+        }
+
+        log.info("角色信息更新完成，角色ID：{}，用户ID：{}", character.getId(), existingCharacter.getUserId());
+    }
+
+    /**
+     * 更新Redis中的角色头像（仅角色详情缓存）
+     */
+    private void updateCharacterImageInRedis(Long characterId, String imageUrl) {
+        try {
+            String characterKey = CHARACTER_DETAIL_KEY + characterId;
+            String characterJson = stringRedisTemplate.opsForValue().get(characterKey);
+
+            Character character;
+            if (StrUtil.isNotBlank(characterJson)) {
+                character = JSONUtil.toBean(characterJson, Character.class);
+                character.setImage(imageUrl);
+            } else {
+                // 从数据库加载并更新
+                character = characterMapper.selectById(characterId);
+                if (character == null) {
+                    log.warn("在数据库中未找到角色，无法更新Redis缓存，角色ID：{}", characterId);
+                    return;
+                }
+                character.setImage(imageUrl);
+            }
+
+            stringRedisTemplate
+                    .opsForValue()
+                    .set(characterKey, JSONUtil.toJsonStr(character), CACHE_TTL_DAYS, TimeUnit.DAYS);
+
+            log.info("Redis角色头像更新成功，角色ID：{}", characterId);
+
+        } catch (Exception e) {
+            log.error("更新Redis角色头像失败：{}", e.getMessage(), e);
+        }
+    }
+
     /**
      * 删除用户角色列表缓存，读时重建
      */

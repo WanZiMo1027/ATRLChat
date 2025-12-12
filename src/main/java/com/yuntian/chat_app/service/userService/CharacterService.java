@@ -60,4 +60,9 @@ public interface CharacterService {
     Integer publicOrNotCharacter(Long characterId);
 
 
+    /**
+     * 修改角色信息
+     * @param character 角色对象
+     */
+    void updateCharacter(Character character);
 }
