@@ -13,6 +13,22 @@ public class UserException extends BaseException {
       */
     public static final int PASSWORD_ERROR = 1002;
 
+     /**
+      * 用户名已存在异常码
+      */
+    public static final int USERNAME_EXISTS = 1003;
+
+    /**
+     * 登录会话过期异常码
+     */
+    public static final int SESSION_EXPIRED = 1004;
+
+    /**
+     *
+     * @param code
+     * @param message
+     */
+
 
 
     public UserException(int code, String message) {

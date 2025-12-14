@@ -66,7 +66,7 @@ public class UserServiceImpl implements UserService {
         String username = user.getUsername();
         User user1 = userMapper.selectByUsername(username);
         if (user1 != null) {
-            throw new RuntimeException("用户已存在");
+            throw new UserException(UserException.USERNAME_EXISTS, "用户已存在");
         }
         //生成随机id
         SnowflakeIdGenerator snowflakeIdGenerator = new SnowflakeIdGenerator(0, 0);

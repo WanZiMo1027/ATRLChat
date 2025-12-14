@@ -6,6 +6,8 @@ import cn.hutool.json.JSONException;
 import cn.hutool.json.JSONUtil;
 import com.yuntian.chat_app.context.BaseContext;
 import com.yuntian.chat_app.entity.Character;
+import com.yuntian.chat_app.exception.CharacterException;
+import com.yuntian.chat_app.exception.UserException;
 import com.yuntian.chat_app.mapper.userMapper.CharacterMapper;
 import com.yuntian.chat_app.result.Result;
 import com.yuntian.chat_app.service.userService.CharacterService;
@@ -15,6 +17,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.CharacterCodingException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -49,7 +52,7 @@ public class CharacterServiceImpl implements CharacterService {
         log.info("当前用户ID：{}", currentUserId);
         if (currentUserId == null) {
             log.error("无法获取当前用户ID，ThreadLocal中用户ID为空");
-            throw new RuntimeException("用户未登录或会话已过期");
+            throw new UserException(UserException.SESSION_EXPIRED, "用户未登录或会话已过期");
         }
         character.setUserId(currentUserId);
         log.info("设置用户ID到角色对象，用户ID：{}", currentUserId);
@@ -66,7 +69,7 @@ public class CharacterServiceImpl implements CharacterService {
             character.setIsPublic(0);
             int result = characterMapper.insert(character);
             if (result <= 0) {
-                throw new RuntimeException("新增角色到MySQL失败");
+                throw new CharacterException(CharacterException.CHARACTER_CREATE_MySQL_ERROR, "新增角色到MySQL失败");
             }
             log.info("新增角色到MySQL成功，角色ID：{}", character.getId());
 
@@ -82,7 +85,7 @@ public class CharacterServiceImpl implements CharacterService {
             // MySQL插入失败或其它异常时，清理临时key
             stringRedisTemplate.delete(tempKey);
             log.error("新增角色失败：{}", e.getMessage(), e);
-            throw new RuntimeException("新增角色失败：" + e.getMessage());
+            throw new CharacterException(CharacterException.CHARACTER_CREATE_ERROR, "新增角色失败：" + e.getMessage());
         }
     }
 
@@ -116,7 +119,7 @@ public class CharacterServiceImpl implements CharacterService {
         Long currentUserId = BaseContext.getCurrentId();
         if (currentUserId == null) {
             log.error("无法获取当前用户ID");
-            throw new RuntimeException("用户未登录");
+            throw new UserException(UserException.SESSION_EXPIRED, "用户未登录或会话已过期");
         }
 
         String key = CHARACTER_LIST_KEY + currentUserId;
@@ -210,7 +213,7 @@ public class CharacterServiceImpl implements CharacterService {
 
         if (character == null) {
             log.info("角色不存在，角色ID：{}", characterId);
-            throw new RuntimeException("角色不存在");
+            throw new CharacterException(CharacterException.CHARACTER_ERROR, "角色不存在");
         }
 
         // 切换公开状态
@@ -231,7 +234,7 @@ public class CharacterServiceImpl implements CharacterService {
         // 1. 先从数据库查出完整的角色对象(包含userId等)
         Character existingCharacter = characterMapper.selectById(character.getId());
         if (existingCharacter == null) {
-            throw new RuntimeException("角色不存在");
+            throw new CharacterException(CharacterException.CHARACTER_ERROR, "角色不存在");
         }
 
         // 2. 更新数据库
@@ -261,7 +264,7 @@ public class CharacterServiceImpl implements CharacterService {
         Character character = characterMapper.selectById(characterId);
         if (character == null) {
             log.warn("角色不存在，角色ID：{}", characterId);
-            throw new RuntimeException("角色不存在");
+            throw new CharacterException(CharacterException.CHARACTER_ERROR, "角色不存在");
         }
 
         // 2. 权限校验(确保只能删除自己的角色)

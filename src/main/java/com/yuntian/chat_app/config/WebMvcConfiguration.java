@@ -1,6 +1,7 @@
 package com.yuntian.chat_app.config;
 
 
+import com.yuntian.chat_app.interceptor.JwtTokenAdminInterceptor;
 import com.yuntian.chat_app.interceptor.JwtTokenUserInterceptor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +27,10 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
 
     @Autowired
     private JwtTokenUserInterceptor jwtTokenUserInterceptor;
+    @Autowired
+    private JwtTokenAdminInterceptor jwtTokenAdminInterceptor;
+
+
 
     /**
      * 注册自定义拦截器
@@ -40,6 +45,7 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
                 .excludePathPatterns(
                         "/user/login",
                         "/user/register",
+                        "/admin/**",
                         "/error",
                         "/index.html",
                         "/ai-chat-test.html",
@@ -54,6 +60,13 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
                         "/**/*.gif",
                         "/**/*.svg",
                         "/webjars/**"
+                );
+        registry.addInterceptor(jwtTokenAdminInterceptor)
+                .addPathPatterns("/admin/**") // 先拦所有
+                // 放行登录与静态资源，否则静态页/静态资源会被拦截导致 404/重定向到 /error
+                .excludePathPatterns(
+                        "/admin/login",
+                        "/admin/register"
                 );
     }
 
