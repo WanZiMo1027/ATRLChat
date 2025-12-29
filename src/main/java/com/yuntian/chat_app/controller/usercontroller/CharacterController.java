@@ -155,6 +155,14 @@ public class CharacterController {
         }
         return Result.success("取消关注");
     }
-
+    /**
+     * 获取我的关注和创建的角色
+     * @return
+     */
+    @GetMapping("/my-and-follow")
+    public Result getMyCharacterAndFollow(){
+        List<Character> characters = characterService.getMyCharacterAndFollow();
+        return Result.success(characters);
+    }
 
 }

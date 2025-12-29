@@ -70,4 +70,10 @@ public interface CharacterService {
      * @param characterId 角色ID
      */
     void deleteCharacter(Long characterId);
+
+     /**
+     * 获取我的关注和创建的角色
+     * @return 角色列表
+     */
+    List<Character> getMyCharacterAndFollow();
 }

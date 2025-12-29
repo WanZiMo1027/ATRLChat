@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yuntian.chat_app.mapper.userMapper.ChatGroupMessageMapper">
+
+    <resultMap id="BaseResultMap" type="com.yuntian.chat_app.entity.ChatGroupMessage">
+        <id column="id" property="id"/>
+        <result column="group_id" property="groupId"/>
+        <result column="sender_id" property="senderId"/>
+        <result column="sender_type" property="senderType"/>
+        <result column="character_id" property="characterId"/>
+        <result column="content" property="content"/>
+        <result column="content_type" property="contentType"/>
+        <result column="image_url" property="imageUrl"/>
+        <result column="reply_to_id" property="replyToId"/>
+        <result column="create_time" property="createTime"/>
+        <result column="is_deleted" property="isDeleted"/>
+    </resultMap>
+
+    <!-- 插入消息 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO chat_group_message (
+            group_id, sender_id, sender_type, character_id,
+            content, content_type, image_url, reply_to_id, create_time
+        ) VALUES (
+                     #{groupId}, #{senderId}, #{senderType}, #{characterId},
+                     #{content}, #{contentType}, #{imageUrl}, #{replyToId}, NOW()
+                 )
+    </insert>
+
+    <!-- 查询群消息（分页） -->
+    <select id="selectByGroupId" resultMap="BaseResultMap">
+        SELECT * FROM chat_group_message
+        WHERE group_id = #{groupId} AND is_deleted = 0
+        ORDER BY create_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 查询消息详情 -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM chat_group_message
+        WHERE id = #{id} AND is_deleted = 0
+    </select>
+
+    <!-- 逻辑删除 -->
+    <update id="deleteById">
+        UPDATE chat_group_message
+        SET is_deleted = 1
+        WHERE id = #{id}
+    </update>
+
+</mapper>

@@ -30,3 +30,10 @@ chatapp:
     user-secret-key: yuntianChatAppAdminSecretKeyForHS256AlgorithmSecurity2024
     user-ttl: 72000000
     user-token-name: token
+  netty:
+    websocket:
+      enabled: true
+      host: 0.0.0.0
+      port: 8090
+      path: /ws/group
+      max-content-length: 65536

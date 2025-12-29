@@ -48,6 +48,7 @@ logging:
 server:
   port: 8085
 
+
 #mybatis
 mybatis:
   mapper-locations: classpath:mapper/*.xml
@@ -68,5 +69,12 @@ chatapp:
     user-secret-key: ${chatapp.jwt.user-secret-key}
     user-ttl: ${chatapp.jwt.user-ttl}
     user-token-name: ${chatapp.jwt.user-token-name}
+  netty:
+    websocket:
+      enabled: true
+      host: 0.0.0.0
+      port: 8090
+      path: /ws/group
+      max-content-length: 65536
 
 

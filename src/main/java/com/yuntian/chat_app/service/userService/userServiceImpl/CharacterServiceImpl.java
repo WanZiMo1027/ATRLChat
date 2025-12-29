@@ -11,6 +11,8 @@ import com.yuntian.chat_app.exception.UserException;
 import com.yuntian.chat_app.mapper.userMapper.CharacterMapper;
 import com.yuntian.chat_app.result.Result;
 import com.yuntian.chat_app.service.userService.CharacterService;
+import com.yuntian.chat_app.service.userService.FollowService;
+import com.yuntian.chat_app.vo.CharacterFollowVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -18,7 +20,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.CharacterCodingException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -30,6 +35,9 @@ public class CharacterServiceImpl implements CharacterService {
 
     @Autowired
     private CharacterMapper characterMapper;
+
+    @Autowired
+    private FollowService followService;
 
     // Redis key 规范化
     // 单个角色详情
@@ -281,6 +289,50 @@ public class CharacterServiceImpl implements CharacterService {
         // 4. 清理三层Redis缓存
         deleteCharacterCaches(character);
 
+    }
+
+    /**
+     * 获取我的关注和创建的角色
+     * @return 角色列表
+     */
+    @Override
+    public List<Character> getMyCharacterAndFollow() {
+        // 1. 获取当前用户ID
+        Long currentUserId = BaseContext.getCurrentId();
+        if (currentUserId == null) {
+            log.error("无法获取当前用户ID");
+            throw new UserException(UserException.SESSION_EXPIRED, "用户未登录或会话已过期");
+        }
+
+        List<Character> myCharacters = getCharacterList();
+        List<CharacterFollowVo> followList = followService.getFollowList(currentUserId);
+
+        Map<Long, Character> merged = new LinkedHashMap<>();
+        if (myCharacters != null) {
+            for (Character c : myCharacters) {
+                if (c != null && c.getId() != null) {
+                    merged.put(c.getId(), c);
+                }
+            }
+        }
+
+        if (followList != null) {
+            for (CharacterFollowVo vo : followList) {
+                if (vo == null || vo.getId() == null) {
+                    continue;
+                }
+                Character c = new Character();
+                c.setId(vo.getId());
+                c.setName(vo.getName());
+                c.setImage(vo.getImage());
+                c.setAppearance(vo.getAppearance());
+                c.setBackground(vo.getBackground());
+                c.setIsPublic(1);
+                merged.putIfAbsent(c.getId(), c);
+            }
+        }
+
+        return new ArrayList<>(merged.values());
     }
 
     /**
