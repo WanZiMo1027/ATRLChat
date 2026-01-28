@@ -1,8 +1,10 @@
 package com.yuntian.chat_app.netty;
 
+import com.yuntian.chat_app.entity.User;
+import com.yuntian.chat_app.mapper.userMapper.UserMapper;
 import com.yuntian.chat_app.properties.JwtProperties;
-import com.yuntian.chat_app.utils.JwtUtil;
 import com.yuntian.chat_app.service.userService.ChatGroupMemberService;
+import com.yuntian.chat_app.utils.JwtUtil;
 import io.jsonwebtoken.Claims;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
@@ -30,6 +32,7 @@ public class NettyWebSocketAuthHandler extends ChannelInboundHandlerAdapter {
 
     private final JwtProperties jwtProperties;
     private final ChatGroupMemberService memberService;
+    private final UserMapper userMapper;
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
@@ -109,6 +112,11 @@ public class NettyWebSocketAuthHandler extends ChannelInboundHandlerAdapter {
         ctx.channel().attr(NettyChannelAttributes.USER_ID).set(userId);
         if (username != null && !username.isBlank()) {
             ctx.channel().attr(NettyChannelAttributes.USERNAME).set(username);
+        }
+
+        User user = userMapper.selectById(userId);
+        if (user != null && user.getAvatarUrl() != null && !user.getAvatarUrl().isBlank()) {
+            ctx.channel().attr(NettyChannelAttributes.AVATAR_URL).set(user.getAvatarUrl());
         }
 
         request.setUri(decoder.path());

@@ -45,7 +45,7 @@ public class ChatGroupMemberServiceImpl implements ChatGroupMemberService {
 
     @Override
     public List<ChatGroupMember> getGroupMembers(Long groupId) {
-        return memberMapper.selectByGroupId(groupId);
+        return memberMapper.selectByGroupIdWithUser(groupId);
     }
 
     @Override

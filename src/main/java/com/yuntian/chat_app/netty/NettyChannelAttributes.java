@@ -7,6 +7,7 @@ public final class NettyChannelAttributes {
     public static final AttributeKey<Long> GROUP_ID = AttributeKey.valueOf("groupId");
     public static final AttributeKey<Long> USER_ID = AttributeKey.valueOf("userId");
     public static final AttributeKey<String> USERNAME = AttributeKey.valueOf("username");
+    public static final AttributeKey<String> AVATAR_URL = AttributeKey.valueOf("avatarUrl");
 
     private NettyChannelAttributes() {
     }

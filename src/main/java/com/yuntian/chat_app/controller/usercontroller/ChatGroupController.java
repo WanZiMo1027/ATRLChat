@@ -7,6 +7,8 @@ import com.yuntian.chat_app.dto.JoinGroupRequestDTO;
 import com.yuntian.chat_app.dto.LeaveGroupRequestDTO;
 import com.yuntian.chat_app.entity.ChatGroup;
 import com.yuntian.chat_app.entity.ChatGroupMember;
+import com.yuntian.chat_app.entity.User;
+import com.yuntian.chat_app.mapper.userMapper.UserMapper;
 import com.yuntian.chat_app.result.Result;
 import com.yuntian.chat_app.service.userService.ChatGroupMemberService;
 import com.yuntian.chat_app.service.userService.ChatGroupMessageService;
@@ -14,7 +16,9 @@ import com.yuntian.chat_app.service.userService.ChatGroupService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/group")
@@ -29,6 +33,8 @@ public class ChatGroupController {
 
 
     private final ChatGroupMessageService messageService;
+
+    private final UserMapper userMapper;
 
     /**
      * 创建群组
@@ -61,6 +67,35 @@ public class ChatGroupController {
     public Result<List<ChatGroupMember>> getMembers(@PathVariable Long groupId) {
         List<ChatGroupMember> members = memberService.getGroupMembers(groupId);
         return Result.success(members);
+    }
+
+    /**
+     * 查询群详情（用于群资料页）
+     */
+    @GetMapping("/{groupId}/detail")
+    public Result<Map<String, Object>> getGroupDetail(@PathVariable Long groupId) {
+        ChatGroup group = groupService.getGroupById(groupId);
+        if (group == null) {
+            return Result.error("群不存在");
+        }
+
+        User creator = null;
+        if (group.getCreatorId() != null) {
+            creator = userMapper.selectById(group.getCreatorId());
+        }
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("group", group);
+        if (creator != null) {
+            Map<String, Object> creatorInfo = new HashMap<>();
+            creatorInfo.put("id", creator.getId());
+            creatorInfo.put("username", creator.getUsername());
+            creatorInfo.put("avatarUrl", creator.getAvatarUrl());
+            data.put("creator", creatorInfo);
+        } else {
+            data.put("creator", null);
+        }
+        return Result.success(data);
     }
 
     /**

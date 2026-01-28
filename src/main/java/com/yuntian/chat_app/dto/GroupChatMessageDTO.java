@@ -25,6 +25,7 @@ public class GroupChatMessageDTO {
     private String imageUrl;       // 图片URL
     private Long replyToId;        // 回复的消息ID
     private String senderName;     // 发送者名称
+    private String senderAvatarUrl;// 发送者头像
     private String senderType;     // USER / AI
     private Long timestamp;        // 时间戳
 }

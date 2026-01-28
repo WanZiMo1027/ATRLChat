@@ -1,11 +1,13 @@
 package com.yuntian.chat_app.tools;
 
 import dev.langchain4j.agent.tool.Tool;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+@Slf4j
 @Component
 public class TimeTools {
 
@@ -13,6 +15,7 @@ public class TimeTools {
 
     @Tool("获取当前服务器本地时间，格式为 yyyy-MM-dd HH:mm:ss")
     public String now() {
+        log.info("调用时间工具，获取当前服务器本地时间");
         return LocalDateTime.now().format(DEFAULT_FMT);
     }
 }

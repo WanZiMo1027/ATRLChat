@@ -16,6 +16,9 @@ public interface ChatGroupMemberMapper {
     // 查询群组成员列表
     List<ChatGroupMember> selectByGroupId(@Param("groupId") Long groupId);
 
+    // 查询群组成员列表（带用户信息）
+    List<ChatGroupMember> selectByGroupIdWithUser(@Param("groupId") Long groupId);
+
     // 查询用户加入的群组
     List<ChatGroupMember> selectByUserId(@Param("userId") Long userId);
 

@@ -56,6 +56,7 @@ public class GroupChatHandler extends SimpleChannelInboundHandler<TextWebSocketF
         Long groupId = ctx.channel().attr(NettyChannelAttributes.GROUP_ID).get();
         Long userId = ctx.channel().attr(NettyChannelAttributes.USER_ID).get();
         String username = ctx.channel().attr(NettyChannelAttributes.USERNAME).get();
+        String avatarUrl = ctx.channel().attr(NettyChannelAttributes.AVATAR_URL).get();
         if (groupId == null || userId == null) {
             ctx.close();
             return;
@@ -81,6 +82,9 @@ public class GroupChatHandler extends SimpleChannelInboundHandler<TextWebSocketF
             msg.setSenderType("USER");
             if (username != null && !username.isBlank()) {
                 msg.setSenderName(username);
+            }
+            if (avatarUrl != null && !avatarUrl.isBlank()) {
+                msg.setSenderAvatarUrl(avatarUrl);
             }
             Long messageId = messageService.saveMessage(msg);
             msg.setMessageId(messageId);
@@ -156,6 +160,7 @@ public class GroupChatHandler extends SimpleChannelInboundHandler<TextWebSocketF
                         .contentType("text")
                         .senderType("AI")
                         .senderName(character.getName())
+                        .senderAvatarUrl(character.getImage())
                         .timestamp(System.currentTimeMillis())
                         .build();
 

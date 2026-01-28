@@ -67,11 +67,13 @@ public class ChatGroupMessageServiceImpl implements ChatGroupMessageService {
                 User user = userMapper.selectById(entity.getSenderId());
                 if (user != null) {
                     dto.setSenderName(user.getUsername());
+                    dto.setSenderAvatarUrl(user.getAvatarUrl());
                 }
             } else if ("AI".equals(entity.getSenderType())) {
                 Character character = characterMapper.selectById(entity.getCharacterId());
                 if (character != null) {
                     dto.setSenderName(character.getName());
+                    dto.setSenderAvatarUrl(character.getImage());
                 }
             }
             return dto;

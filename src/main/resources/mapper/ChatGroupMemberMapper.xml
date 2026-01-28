@@ -9,6 +9,8 @@
         <result column="user_id" property="userId"/>
         <result column="role" property="role"/>
         <result column="nickname" property="nickname"/>
+        <result column="username" property="username"/>
+        <result column="avatar_url" property="avatarUrl"/>
         <result column="join_time" property="joinTime"/>
         <result column="last_read_time" property="lastReadTime"/>
         <result column="is_muted" property="isMuted"/>
@@ -29,6 +31,19 @@
         SELECT * FROM chat_group_member
         WHERE group_id = #{groupId} AND is_deleted = 0
         ORDER BY join_time ASC
+    </select>
+
+    <!-- 查询群组成员（带用户信息） -->
+    <select id="selectByGroupIdWithUser" resultMap="BaseResultMap">
+        SELECT
+            m.*,
+            u.username,
+            u.avatar_url
+        FROM chat_group_member m
+                 LEFT JOIN user u ON u.id = m.user_id AND u.is_deleted = 0
+        WHERE m.group_id = #{groupId}
+          AND m.is_deleted = 0
+        ORDER BY m.join_time ASC
     </select>
 
     <!-- 查询用户的群组 -->
