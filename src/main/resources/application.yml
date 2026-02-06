@@ -32,6 +32,12 @@ langchain4j:
       model-name: qwen3-vl-plus-2025-12-19
       log-requests: true
       log-responses: true
+    embedding-model:
+      base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+      api-key: ${API-KEY}
+      model-name: text-embedding-v4 # 推荐使用 v3
+      log-requests: true
+      log-responses: true
 management:
   endpoints:
     web:
@@ -40,6 +46,17 @@ management:
       base-path: /actuator  # 建议显式指定（默认就是 /actuator）
     tags:
       application: ${spring.application.name}
+
+# 新增：PostgreSQL 向量数据库配置 (仅供 RAG 使用)
+rag:
+  postgres:
+    host: localhost
+    port: 5432
+    database: atrl_chat
+    user: postgres
+    password: 123456
+    table: conversation_memories
+    dimension: 1024  # 必须与你创建表时的维度一致
 
 logging:
   level:

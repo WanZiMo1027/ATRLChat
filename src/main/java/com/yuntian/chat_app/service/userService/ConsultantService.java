@@ -18,7 +18,7 @@ import dev.langchain4j.service.spring.AiServiceWiringMode;
     )
     public interface ConsultantService {
 
-        //用于聊天的方法
+        //用于带图片的多模态聊天
         @SystemMessage(fromResource = "system.txt")
         public String chat(@MemoryId String memoryId,
                            @UserMessage String message,
@@ -29,6 +29,7 @@ import dev.langchain4j.service.spring.AiServiceWiringMode;
                            @V("personality") String personality,
                            @V("classic_lines") String classicLines
         ) ;
+        //用于普通聊天的方法
         @SystemMessage(fromResource = "system.txt")
         public String chat(@MemoryId String memoryId,
                          @UserMessage String message,
