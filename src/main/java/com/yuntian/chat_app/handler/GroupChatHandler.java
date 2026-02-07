@@ -147,7 +147,8 @@ public class GroupChatHandler extends SimpleChannelInboundHandler<TextWebSocketF
                         character.getAppearance(),
                         character.getBackground(),
                         character.getPersonality(),
-                        character.getClassicLines()
+                        character.getClassicLines(),
+                        ""
                 );
 
                 // 5. 构建AI消息

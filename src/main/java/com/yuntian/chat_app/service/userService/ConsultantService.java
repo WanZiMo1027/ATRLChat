@@ -18,26 +18,38 @@ import dev.langchain4j.service.spring.AiServiceWiringMode;
     )
     public interface ConsultantService {
 
+        String RAG_USER_PROMPT = """
+            【相关历史记忆（仅供参考，若无关请忽略）】
+            {{memory}}
+            
+            【用户提问】
+            {{message}}
+            """;
+
         //用于带图片的多模态聊天
         @SystemMessage(fromResource = "system.txt")
+        @UserMessage(RAG_USER_PROMPT)
         public String chat(@MemoryId String memoryId,
-                           @UserMessage String message,
-                           @UserMessage  ImageContent imageContent,
+                           @V("message") String message,
+                           @UserMessage ImageContent imageContent,
                            @V("name") String name,
                            @V("appearance") String appearance,
                            @V("background") String background,
                            @V("personality") String personality,
-                           @V("classic_lines") String classicLines
+                           @V("classic_lines") String classicLines,
+                           @V("memory") String memory
         ) ;
         //用于普通聊天的方法
         @SystemMessage(fromResource = "system.txt")
+        @UserMessage(RAG_USER_PROMPT)
         public String chat(@MemoryId String memoryId,
-                         @UserMessage String message,
+                         @V("message") String message,
                          @V("name") String name,
                          @V("appearance") String appearance,
                          @V("background") String background,
                          @V("personality") String personality,
-                         @V("classic_lines") String classicLines
+                         @V("classic_lines") String classicLines,
+                         @V("memory") String memory
         );
 
     }

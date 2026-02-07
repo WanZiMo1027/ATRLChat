@@ -7,6 +7,7 @@ import com.yuntian.chat_app.context.MonitorContextHolder;
 import com.yuntian.chat_app.entity.Character;
 import com.yuntian.chat_app.result.Result;
 import com.yuntian.chat_app.service.userService.ConsultantService;
+import com.yuntian.chat_app.service.userService.RagService;
 import com.yuntian.chat_app.service.userService.userServiceImpl.ChatHistoryService;
 import dev.langchain4j.data.message.ImageContent;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +27,8 @@ public class ChatController {
     @Autowired
     private ChatHistoryService chatHistoryService;
 
+    @Autowired
+    private RagService ragService;
 
 
 
@@ -54,6 +57,8 @@ public class ChatController {
            // 更新会话活动时间
            chatHistoryService.updateSessionActivity(memoryId);
 
+           String longTermMemory = ragService.retrieveMemory(userId, message);
+
            String name = character != null && character.getName() != null ? character.getName() : "";
            String appearance = character != null && character.getAppearance() != null ? character.getAppearance() : "";
            String background = character != null && character.getBackground() != null ? character.getBackground() : "";
@@ -73,10 +78,14 @@ public class ChatController {
            String response ;
            if (imageContent != null) {
                response = consultantService.chat(memoryId, message, imageContent, name, appearance,
-                       background, personality, classicLines);
+                       background, personality, classicLines, longTermMemory);
            }else {
                response = consultantService.chat(memoryId, message, name, appearance,
-                       background, personality, classicLines);
+                       background, personality, classicLines, longTermMemory);
+           }
+
+           if (response != null && !response.startsWith("Result(")) {
+               ragService.ingestMemory(userId, message, response);
            }
 
            return response;

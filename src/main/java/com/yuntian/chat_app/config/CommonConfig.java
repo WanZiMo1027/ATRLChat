@@ -28,7 +28,7 @@ public class CommonConfig {
             public ChatMemory get(Object memoryId){
                 return MessageWindowChatMemory.builder()
                         .id(memoryId)
-                        .maxMessages(20)
+                        .maxMessages(5)
                         .chatMemoryStore(redisChatMemoryStore) //配置chatMemoryStore，记忆存储
                         .build();
             }

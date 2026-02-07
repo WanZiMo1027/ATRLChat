@@ -21,6 +21,10 @@ public class VectorStoreConfig {
     private String user;
     @Value("${rag.postgres.password}")
     private String password;
+    @Value("${rag.postgres.table}")
+    private String table;
+    @Value("${rag.postgres.dimension}")
+    private Integer dimension;
 
     @Bean
     public EmbeddingStore<TextSegment> embeddingStore() {
@@ -31,8 +35,8 @@ public class VectorStoreConfig {
                 .database(database)
                 .user(user)
                 .password(password)
-                .table("conversation_memories")
-                .dimension(1024)
+                .table(table)
+                .dimension(dimension)
                 .build();
     }
 }
