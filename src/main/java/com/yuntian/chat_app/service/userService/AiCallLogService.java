@@ -69,30 +69,32 @@ public class AiCallLogService {
                 return TokenStatDTO.empty();
             }
 
-            // 第一条就是最后一次调用
             AiCallLogDO latest = allRecords.get(0);
+            // 第一条就是最后一次调用
+            int totalInput = allRecords.stream()
+                    .mapToInt(r -> r.getInputTokens() != null ? r.getInputTokens() : 0)
+                    .sum();
 
             // 内存计算：累加所有 output 和耗时
             int totalOutput = allRecords.stream()
                     .mapToInt(record -> record.getOutputTokens() != null ? record.getOutputTokens() : 0)
                     .sum();
 
+            int totalTokens = allRecords.stream()
+                    .mapToInt(r -> r.getTotalTokens() != null ? r.getTotalTokens() : 0)
+                    .sum();
+
             int totalDuration = allRecords.stream()
                     .mapToInt(record -> record.getDurationMs() != null ? record.getDurationMs() : 0)
                     .sum();
 
-            // 组装结果
             TokenStatDTO stat = new TokenStatDTO();
             stat.setMemoryId(memoryId);
-            stat.setInputTokens(latest.getInputTokens());
-            stat.setOutputTokens(totalOutput);
-            stat.setTotalTokens(latest.getTotalTokens());
+            stat.setInputTokens(totalInput);   //  改为累加值
+            stat.setOutputTokens(totalOutput); //  改为累加值
+            stat.setTotalTokens(totalTokens);  //  改为累加值
             stat.setDurationMs(totalDuration);
             stat.setLastCallTime(latest.getRequestTs());
-
-            log.info("查询 Token 统计 - memoryId: {}, 记录数: {}, input: {}, output: {}, total: {}",
-                    memoryId, allRecords.size(),
-                    stat.getInputTokens(), stat.getOutputTokens(), stat.getTotalTokens());
 
             return stat;
 

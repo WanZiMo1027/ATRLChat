@@ -99,3 +99,18 @@ create table user_follow_character
     comment '用户关注角色关系表';
 
 
+-- 私聊消息持久化表
+CREATE TABLE private_chat_message (
+                                      id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                                      memory_id VARCHAR(128) NOT NULL COMMENT '会话ID，作为查询历史的核心索引',
+                                      user_id BIGINT NOT NULL COMMENT '用户ID',
+                                      character_id BIGINT NOT NULL COMMENT '角色ID',
+                                      sender_type VARCHAR(10) NOT NULL COMMENT '发送者类型: USER 或 AI',
+                                      content TEXT COMMENT '消息内容',
+                                      image_url VARCHAR(512) COMMENT '图片URL(如果是多模态)',
+                                      is_deleted TINYINT DEFAULT 0 COMMENT '逻辑删除',
+                                      create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+                                      INDEX idx_memory_id (memory_id),
+                                      INDEX idx_create_time (create_time)
+) COMMENT '个人聊天记录持久化表';
+

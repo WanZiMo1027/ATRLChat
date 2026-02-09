@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI Chat 测试</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 24px; line-height: 1.5; }
+    .row { margin-bottom: 12px; }
+    textarea { width: 100%; height: 120px; padding: 8px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; }
+    #output { white-space: pre-wrap; background: #f7f7f7; padding: 12px; border: 1px solid #ddd; border-radius: 8px; min-height: 120px; }
+    button { padding: 8px 16px; border-radius: 8px; border: 1px solid #ccc; cursor: pointer; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    label { display: block; margin-bottom: 6px; font-weight: 600; }
+    input[type="text"] { width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; }
+    .hint { color: #666; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <h1>AI Chat 测试页</h1>
+  <p class="hint">此页面将调用后端 /ai/chat 接口（GET），端口为 8085（application.yml），用于快速验证聊天功能是否正常。</p>
+
+  <div class="row">
+    <label>Memory ID</label>
+    <input id="memoryId" type="text" placeholder="例如：user-1-session-1" value="demo-session" />
+  </div>
+
+  <div class="row">
+    <label>JWT Token（可选，请求头名：token）</label>
+    <input id="token" type="text" placeholder="eyJhbGciOiJIUzI1NiJ9.eyJpZCI6MSwidXNlcm5hbWUiOiJhZG1pbiIsImV4cCI6MTc1ODAzODk5Nn0.R6gotAwY_qNVzr2VHTbI32JBKStGxHOfNKoPgeJ3YE0" />
+  </div>
+
+  <div class="row">
+    <label>消息内容</label>
+    <textarea id="message" placeholder="输入要发送的消息..."></textarea>
+  </div>
+
+  <!-- 角色设定字段（对应后端 Character 实体 + styleHints） -->
+  <h3>角色设定（可选）</h3>
+  <div class="row">
+    <label>角色名字 name</label>
+    <input id="name" type="text" placeholder="例如：小南 —— 沉稳温柔的陪伴型AI" />
+  </div>
+  <div class="row">
+    <label>外表 appearance</label>
+    <textarea id="appearance" placeholder="例如：短发，爱穿浅色毛衣，笑容温暖"></textarea>
+  </div>
+  <div class="row">
+    <label>经历 background</label>
+    <textarea id="background" placeholder="例如：曾在公益机构志愿多年，擅长倾听"></textarea>
+  </div>
+  <div class="row">
+    <label>性格 personality</label>
+    <textarea id="personality" placeholder="例如：耐心、共情、轻松幽默"></textarea>
+  </div>
+  <div class="row">
+    <label>经典台词 classicLines</label>
+    <textarea id="classicLines" placeholder="例如：\"慢慢来，一切都会好起来的。\""></textarea>
+  </div>
+  <div class="row">
+    <label>说话风格细节 styleHints</label>
+    <textarea id="styleHints" placeholder="例如：用简短句子、适度表情符号、少用专业术语"></textarea>
+  </div>
+
+  <div class="row">
+    <button id="sendBtn">发送</button>
+    <button id="clearBtn" style="margin-left:8px;">清空</button>
+    <button id="fillDemoBtn" style="margin-left:8px;">填充示例角色</button>
+  </div>
+
+  <h3>响应</h3>
+  <div id="output">尚未发送</div>
+
+  <script>
+    const btn = document.getElementById('sendBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const fillDemoBtn = document.getElementById('fillDemoBtn');
+    const output = document.getElementById('output');
+
+    clearBtn.addEventListener('click', () => {
+      document.getElementById('message').value = '';
+      document.getElementById('name').value = '';
+      document.getElementById('appearance').value = '';
+      document.getElementById('background').value = '';
+      document.getElementById('personality').value = '';
+      document.getElementById('classicLines').value = '';
+      document.getElementById('styleHints').value = '';
+      output.textContent = '已清空输入';
+    });
+
+    fillDemoBtn.addEventListener('click', () => {
+      document.getElementById('name').value = '小南';
+      document.getElementById('appearance').value = '短发，爱穿浅色毛衣，笑容温暖';
+      document.getElementById('background').value = '曾在公益机构志愿多年，擅长倾听';
+      document.getElementById('personality').value = '耐心、共情、轻松幽默';
+      document.getElementById('classicLines').value = '“慢慢来，一切都会好起来的。”';
+      document.getElementById('styleHints').value = '用简短句子、适度表情符号、少用专业术语';
+    });
+
+    btn.addEventListener('click', async () => {
+      const memoryId = document.getElementById('memoryId').value.trim();
+      const message = document.getElementById('message').value.trim();
+      const token = (document.getElementById('token') && document.getElementById('token').value || '').trim();
+
+      // 角色字段（全部可空）
+      const name = (document.getElementById('name').value || '').trim();
+      const appearance = (document.getElementById('appearance').value || '').trim();
+      const background = (document.getElementById('background').value || '').trim();
+      const personality = (document.getElementById('personality').value || '').trim();
+      const classicLines = (document.getElementById('classicLines').value || '').trim();
+      const styleHints = (document.getElementById('styleHints').value || '').trim();
+
+      if (!memoryId || !message) {
+        alert('memoryId 和 message 不能为空');
+        return;
+      }
+
+      btn.disabled = true;
+      output.textContent = '请求中...';
+
+      try {
+        // Spring MVC 将把 name/appearance/... 绑定到 Character 参数，把 styleHints 绑定到独立的 String 参数
+        const params = new URLSearchParams();
+        params.set('memoryId', memoryId);
+        params.set('message', message);
+        if (name) params.set('name', name);
+        if (appearance) params.set('appearance', appearance);
+        if (background) params.set('background', background);
+        if (personality) params.set('personality', personality);
+        if (classicLines) params.set('classicLines', classicLines);
+        if (styleHints) params.set('styleHints', styleHints);
+
+        const url = `/ai/chat?${params.toString()}`;
+        const headers = {
+          'Accept': 'text/html, text/plain;q=0.9, */*;q=0.8'
+        };
+        if (token) headers['token'] = token; // 使用自定义请求头 token 传递JWT
+
+        const res = await fetch(url, {
+          method: 'GET',
+          headers
+        });
+
+        const text = await res.text();
+        if (!res.ok) {
+          output.textContent = `请求失败 (HTTP ${res.status}):\n` + text;
+        } else {
+          output.textContent = text || '[空响应]';
+        }
+      } catch (err) {
+        output.textContent = '请求异常：' + (err && err.message ? err.message : err);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
