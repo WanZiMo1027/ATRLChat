@@ -9,6 +9,7 @@ import com.yuntian.chat_app.service.userService.ConsultantService;
 import com.yuntian.chat_app.service.userService.PrivateChatMessageService;
 import com.yuntian.chat_app.service.userService.RagService;
 import com.yuntian.chat_app.service.userService.userServiceImpl.ChatHistoryService;
+import com.yuntian.chat_app.utils.AliOssUtil;
 import dev.langchain4j.data.message.ImageContent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +19,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+
+
 
 @Slf4j
 @RestController
@@ -34,6 +38,8 @@ public class ChatController {
 
     @Autowired
     private PrivateChatMessageService privateChatMessageService;
+    @Autowired
+    private AliOssUtil aliOssUtil;
 
     /**
      * AI 对话核心接口
@@ -77,10 +83,15 @@ public class ChatController {
 
             if (imageFile != null && !imageFile.isEmpty()) {
                 try {
+                    String originalFilename = imageFile.getOriginalFilename();
+                    String fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));
+                    // 生成存储路径：chat_images/用户ID/时间戳_随机码.jpg
+                    String objectName = String.format("chat/%s_%s%s", userIdLong, System.currentTimeMillis(), UUID.randomUUID().toString().substring(0, 8), fileExtension);
+                    dbImageUrl = aliOssUtil.upload(imageFile.getBytes(), objectName);
                     String base64Image = Base64.getEncoder().encodeToString(imageFile.getBytes());
                     String mimeType = imageFile.getContentType();
                     imageContent = ImageContent.from(base64Image, mimeType);
-                    dbImageUrl = "[图片已发送]"; // 暂存标记，如果你有OSS，这里应该存OSS URL
+
                 } catch (Exception e) {
                     return String.valueOf(Result.error("图片处理失败: " + e.getMessage()));
                 }
