@@ -23,31 +23,40 @@ spring:
   servlet:
     multipart:
       max-file-size: 10MB
-      max-request-size: 20MB   # 整个请求最大限制（包含所有文件和表单数据）
+      max-request-size: 20MB
+
 langchain4j:
   open-ai:
     chat-model:
       base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
       api-key: ${API-KEY}
-      model-name: qwen3-vl-plus-2025-12-19
+      model-name: qwen3.5-plus
       log-requests: true
       log-responses: true
+      timeout: PT120S
     embedding-model:
       base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
       api-key: ${API-KEY}
-      model-name: text-embedding-v4 # 推荐使用 v3
+      model-name: text-embedding-v4
       log-requests: true
       log-responses: true
+
+# 记忆写入器专用模型（轻量快速，与主聊天模型隔离）
+memory-writer:
+  base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+  api-key: ${API-KEY}
+  model-name: qwen-turbo
+  timeout: 15
+
 management:
   endpoints:
     web:
       exposure:
         include: health,info,prometheus,metrics
-      base-path: /actuator  # 建议显式指定（默认就是 /actuator）
+      base-path: /actuator
     tags:
       application: ${spring.application.name}
 
-# 新增：PostgreSQL 向量数据库配置 (仅供 RAG 使用)
 rag:
   postgres:
     host: localhost
@@ -56,7 +65,7 @@ rag:
     user: postgres
     password: 123456
     table: conversation_memories
-    dimension: 1024  # 必须与你创建表时的维度一致
+    dimension: 1024
 
 logging:
   level:
@@ -65,23 +74,16 @@ logging:
 server:
   port: 8085
 
-
-#mybatis
 mybatis:
   mapper-locations: classpath:mapper/*.xml
   configuration:
-    #log
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
-    #camel
     map-underscore-to-camel-case: true
 
 chatapp:
   jwt:
-    # 设置jwt签名加密时使用的秘钥
     admin-secret-key: ${chatapp.jwt.admin-secret-key}
-    # 设置jwt过期时间
     admin-ttl: ${chatapp.jwt.admin-ttl}
-    # 设置前端传递过来的令牌名称
     admin-token-name: ${chatapp.jwt.admin-token-name}
     user-secret-key: ${chatapp.jwt.user-secret-key}
     user-ttl: ${chatapp.jwt.user-ttl}
@@ -93,5 +95,3 @@ chatapp:
       port: 8090
       path: /ws/group
       max-content-length: 65536
-
-

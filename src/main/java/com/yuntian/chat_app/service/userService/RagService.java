@@ -32,9 +32,11 @@ public class RagService {
     private final EmbeddingModel embeddingModel;
     private final MemoryWriterService memoryWriterService;
 
+    // 根据 text-embedding-v4 的规格设定维度 (1024)
+    private static final int EMBEDDING_DIMENSION = 1024;
+
     /**
-     * 检索记忆
-     * 🚀 修改：参数名从 userId 改为 memoryId，明确这是基于会话的检索
+     * 检索记忆（依然使用向量相似度实现模糊检索）
      */
     public String retrieveMemory(String memoryId, String userMessage) {
         try {
@@ -42,22 +44,17 @@ public class RagService {
 
             EmbeddingSearchRequest request = EmbeddingSearchRequest.builder()
                     .queryEmbedding(queryEmbedding)
-                    .filter(metadataKey("memory_id").isEqualTo(memoryId)) // 👈 确保只查当前会话
+                    .filter(metadataKey("memory_id").isEqualTo(memoryId))
                     .maxResults(3)
-                    .minScore(0.6)
+                    .minScore(0.75)
                     .build();
 
             List<EmbeddingMatch<TextSegment>> results = embeddingStore.search(request).matches();
-            if (results.isEmpty()) {
-                return "";
-            }
+            if (results.isEmpty()) return "";
 
-            String memoryContext = results.stream()
+            return results.stream()
                     .map(match -> match.embedded().text())
                     .collect(Collectors.joining("\n---\n"));
-
-            log.info("🔍 RAG 命中会话记忆 (memoryId: {}): \n{}", memoryId, memoryContext);
-            return memoryContext;
         } catch (Exception e) {
             log.error("向量检索失败", e);
             return "";
@@ -65,60 +62,44 @@ public class RagService {
     }
 
     /**
-     * 存储记忆
+     * 写入记忆（核心逻辑：按 key 覆盖）
      */
     @Async
     public void ingestMemory(String memoryId, String userMessage, String aiResponse, Long userId, Long characterId) {
         try {
-            // 手动传递上下文给异步线程
             MonitorContext context = MonitorContext.builder()
-                    .userId(String.valueOf(userId))
-                    .characterId(String.valueOf(characterId))
-                    .memoryId(memoryId)
-                    .build();
+                    .userId(String.valueOf(userId)).characterId(String.valueOf(characterId)).memoryId(memoryId).build();
             MonitorContextHolder.setContext(context);
-
-            if (userMessage == null || aiResponse == null ||
-                    userMessage.length() < 2 || aiResponse.length() < 2) {
-                return;
-            }
 
             String extracted = memoryWriterService.extract(userMessage, aiResponse);
             List<MemoryItem> items = parseMemoryItems(extracted);
-
-            // 如果提取为空，说明 AI 觉得没啥好记的
-            if (items.isEmpty()) {
-                log.info("本次对话未提取到新记忆");
-                return;
-            }
+            if (items.isEmpty()) return;
 
             for (MemoryItem item : items) {
-                if (item == null || item.memory == null || item.memory.isBlank()) continue;
-                if (item.confidence == null || item.confidence < 0.7) continue;
+                if (item.memory == null || item.key == null || item.confidence < 0.7) continue;
 
-                String memoryText = "【" + item.type.trim() + "】" + item.memory.trim();
+                String memoryText = "【" + item.type + "】" + item.memory;
 
-                Embedding embedding = embeddingModel.embed(memoryText).content();
-
-                // 查重：只在当前会话 memoryId 里查重
-                if (isDuplicate(memoryId, embedding)) {
-                    log.debug("记忆已存在，跳过: {}", memoryText);
-                    continue;
+                // 🔥 1. 精确查找同 key 的旧记忆（零 Token 消耗）
+                List<EmbeddingMatch<TextSegment>> existing = findByKey(memoryId, item.key);
+                if (!existing.isEmpty()) {
+                    existing.forEach(match -> {
+                        log.info("🔄 覆盖旧记忆 [key={}]: {} -> {}", item.key, match.embedded().text(), memoryText);
+                        embeddingStore.remove(match.embeddingId());
+                    });
                 }
 
-                // 入库：打上 memory_id 的标签
+                // 🔥 2. 存入新记忆（依然需要 Embedding 给未来的检索使用）
+                Embedding embedding = embeddingModel.embed(memoryText).content();
                 Metadata metadata = new Metadata();
-                metadata.put("memory_id", memoryId); // 👈 关键：存入会话ID
-                metadata.put("memory_type", item.type.trim());
-                // 也可以顺便存个 user_id 方便以后做数据迁移，但检索主要靠 memory_id
+                metadata.put("memory_id", memoryId);
+                metadata.put("memory_key", item.key); // 存储唯一标识
                 metadata.put("user_id", String.valueOf(userId));
+                metadata.put("timestamp", System.currentTimeMillis());
 
-                TextSegment segment = TextSegment.from(memoryText, metadata);
-                embeddingStore.add(embedding, segment);
-
-                log.info("✅ 成功写入记忆: {} (Session: {})", memoryText, memoryId);
+                embeddingStore.add(embedding, TextSegment.from(memoryText, metadata));
+                log.info("✅ 成功存入记忆: {} (key={})", memoryText, item.key);
             }
-
         } catch (Exception e) {
             log.error("异步存储记忆失败", e);
         } finally {
@@ -126,36 +107,40 @@ public class RagService {
         }
     }
 
-    private boolean isDuplicate(String memoryId, Embedding embedding) {
+    /**
+     * 按 Key 精确过滤：手动创建合法伪向量，强制依靠 metadata filter 命中
+     */
+    private List<EmbeddingMatch<TextSegment>> findByKey(String memoryId, String key) {
+        float[] dummyArray = new float[EMBEDDING_DIMENSION];
+        dummyArray[0] = 1.0f; // 🔥 修复点 1：给第一维赋个值，避免全0向量导致的数学“除以0”错误
+        Embedding dummyEmbedding = new Embedding(dummyArray);
+
         EmbeddingSearchRequest request = EmbeddingSearchRequest.builder()
-                .queryEmbedding(embedding)
-                .filter(metadataKey("memory_id").isEqualTo(memoryId))
-                .maxResults(1)
-                .minScore(0.85)
+                .queryEmbedding(dummyEmbedding)
+                .filter(metadataKey("memory_id").isEqualTo(memoryId)
+                        .and(metadataKey("memory_key").isEqualTo(key)))
+                .maxResults(5)
+                .minScore(0.0)
                 .build();
-        List<EmbeddingMatch<TextSegment>> results = embeddingStore.search(request).matches();
-        return !results.isEmpty();
+
+        return embeddingStore.search(request).matches();
     }
 
     private List<MemoryItem> parseMemoryItems(String raw) {
-        if (raw == null) return Collections.emptyList();
-        String text = raw.trim();
-        // 简单的 JSON 提取逻辑
-        int start = text.indexOf('[');
-        int end = text.lastIndexOf(']');
-        if (start < 0 || end < 0) return Collections.emptyList();
-
         try {
-            String json = text.substring(start, end + 1);
-            return objectMapper.readValue(json, new TypeReference<List<MemoryItem>>() {});
+            int start = raw.indexOf('[');
+            int end = raw.lastIndexOf(']');
+            if (start < 0 || end < 0) return Collections.emptyList();
+            return objectMapper.readValue(raw.substring(start, end + 1), new TypeReference<>() {});
         } catch (Exception e) {
-            log.warn("记忆解析失败: {}", raw);
+            log.warn("解析记忆 JSON 失败: {}", raw);
             return Collections.emptyList();
         }
     }
 
     public static class MemoryItem {
         public String type;
+        public String key; // 👈 新增
         public String memory;
         public Double confidence;
     }
