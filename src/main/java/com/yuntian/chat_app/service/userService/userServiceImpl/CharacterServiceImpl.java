@@ -9,6 +9,7 @@ import com.yuntian.chat_app.entity.Character;
 import com.yuntian.chat_app.exception.CharacterException;
 import com.yuntian.chat_app.exception.UserException;
 import com.yuntian.chat_app.mapper.userMapper.CharacterMapper;
+import com.yuntian.chat_app.mapper.userMapper.UserFollowCharacterMapper;
 import com.yuntian.chat_app.result.Result;
 import com.yuntian.chat_app.service.userService.CharacterService;
 import com.yuntian.chat_app.service.userService.FollowService;
@@ -39,6 +40,9 @@ public class CharacterServiceImpl implements CharacterService {
     @Autowired
     private FollowService followService;
 
+    @Autowired
+    private UserFollowCharacterMapper userFollowCharacterMapper;
+
     // Redis key 规范化
     // 单个角色详情
     private static final String CHARACTER_DETAIL_KEY = "character:detail:";
@@ -49,6 +53,8 @@ public class CharacterServiceImpl implements CharacterService {
     private static final String TEMP_CHARACTER_KEY_PREFIX = "temp_character:";
     // 角色广场列表
     private static final String CHARACTER_SQUARE_KEY = "character:list:public";
+    private static final String FOLLOW_LIST_KEY = "follow:list:";
+    private static final String FOLLOW_RANK_KEY_PREFIX = "follow:rank:";
 
     private static final long CACHE_TTL_DAYS = 7;
 
@@ -117,6 +123,7 @@ public class CharacterServiceImpl implements CharacterService {
         if (character != null && character.getUserId() != null) {
             evictUserCharacterListCache(character.getUserId());
         }
+        evictFollowCaches(characterId);
     }
 
     /**
@@ -256,6 +263,7 @@ public class CharacterServiceImpl implements CharacterService {
 
         // 5. 删除用户列表缓存(让下次查询时重建)
         evictUserCharacterListCache(existingCharacter.getUserId());
+        evictFollowCaches(character.getId());
 
         // 6. 如果修改的是公开角色,需要删除广场缓存
         if (existingCharacter.getIsPublic() == 1 || updated.getIsPublic() == 1) {
@@ -383,6 +391,41 @@ public class CharacterServiceImpl implements CharacterService {
     /**
      * 写入/刷新角色详情缓存
      */
+    private void evictFollowCaches(Long characterId) {
+        evictFollowListCaches(characterId);
+        evictFollowRankCaches();
+    }
+
+    private void evictFollowListCaches(Long characterId) {
+        try {
+            List<Long> followerUserIds = userFollowCharacterMapper.selectFollowerUserIdsByCharacterId(characterId);
+            if (followerUserIds == null || followerUserIds.isEmpty()) {
+                return;
+            }
+
+            for (Long followerUserId : followerUserIds) {
+                String followListKey = FOLLOW_LIST_KEY + followerUserId;
+                Boolean deleted = stringRedisTemplate.delete(followListKey);
+                log.info("ey={}eleted={}", followListKey, deleted);
+            }
+        } catch (Exception e) {
+            log.warn("{}", characterId, e);
+        }
+    }
+
+    private void evictFollowRankCaches() {
+        try {
+            var rankKeys = stringRedisTemplate.keys(FOLLOW_RANK_KEY_PREFIX + "*");
+            if (rankKeys == null || rankKeys.isEmpty()) {
+                return;
+            }
+            Long deletedCount = stringRedisTemplate.delete(rankKeys);
+            log.info("count={}", deletedCount);
+        } catch (Exception e) {
+            log.warn("", e);
+        }
+    }
+
     private void updateCharacterDetailCache(Character character) {
         try {
             String characterKey = CHARACTER_DETAIL_KEY + character.getId();

@@ -4,11 +4,11 @@ spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: root
-    password: 1234
+    password: 123456
     url: jdbc:mysql://localhost:3307/chatapp?useSSL=false&serverTimezone=UTC&characterEncoding=utf-8&allowPublicKeyRetrieval=true
   data:
     redis:
-      port: 16379
+      port: 6379
       host: localhost
       database: 0
       connect-timeout: 10000

@@ -43,6 +43,15 @@ public interface UserFollowCharacterMapper {
      */
     @Select("select count(*) from user_follow_character where character_id=#{id} and status=1")
     Integer selectFollowCount(Long id);
+
+    /**
+     * 查询关注某个角色的所有用户ID
+     * @param characterId 角色ID
+     * @return 用户ID列表
+     */
+    @Select("select distinct user_id from user_follow_character where character_id=#{characterId} and status=1")
+    List<Long> selectFollowerUserIdsByCharacterId(Long characterId);
+
     /**
      * 查询关注排行榜 - 支持时间维度
      * @param startTime 开始时间（null表示不限制）

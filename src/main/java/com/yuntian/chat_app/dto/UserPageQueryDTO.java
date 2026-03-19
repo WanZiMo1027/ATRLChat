@@ -6,7 +6,7 @@ import java.io.Serializable;
 
 @Data
 public class UserPageQueryDTO implements Serializable {
-    private int page;
-    private int pageSize;
+    private Integer page;
+    private Integer pageSize;
     private String username;
 }
