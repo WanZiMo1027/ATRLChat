@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yuntian.chat_app.mapper.userMapper.MemoryIndexMapper">
+
+    <resultMap id="BaseResultMap" type="com.yuntian.chat_app.entity.MemoryIndexDO">
+        <result property="memoryId" column="memory_id"/>
+        <result property="memoryKey" column="memory_key"/>
+        <result property="embeddingId" column="embedding_id"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="findByMemoryIdAndKey" resultMap="BaseResultMap">
+        SELECT memory_id, memory_key, embedding_id, updated_at
+        FROM memory_index
+        WHERE memory_id = #{memoryId}
+          AND memory_key = #{memoryKey}
+        LIMIT 1
+    </select>
+
+    <insert id="upsert">
+        INSERT INTO memory_index (memory_id, memory_key, embedding_id)
+        VALUES (#{memoryId}, #{memoryKey}, #{embeddingId})
+        ON DUPLICATE KEY UPDATE
+            embedding_id = VALUES(embedding_id),
+            updated_at = CURRENT_TIMESTAMP
+    </insert>
+
+</mapper>
