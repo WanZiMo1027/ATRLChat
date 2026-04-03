@@ -21,8 +21,8 @@
     <insert id="upsert">
         INSERT INTO memory_index (memory_id, memory_key, embedding_id)
         VALUES (#{memoryId}, #{memoryKey}, #{embeddingId})
-        ON DUPLICATE KEY UPDATE
-            embedding_id = VALUES(embedding_id),
+        ON CONFLICT (memory_id, memory_key) DO UPDATE
+        SET embedding_id = EXCLUDED.embedding_id,
             updated_at = CURRENT_TIMESTAMP
     </insert>
 

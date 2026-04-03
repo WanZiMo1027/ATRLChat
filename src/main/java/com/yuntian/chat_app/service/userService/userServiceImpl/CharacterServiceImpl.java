@@ -79,13 +79,13 @@ public class CharacterServiceImpl implements CharacterService {
             stringRedisTemplate.opsForValue().set(tempKey, characterJson, 300, TimeUnit.SECONDS);
             log.info("角色信息已临时存储到Redis，临时key：{}", tempKey);
 
-            // 3) 写入 MySQL
+            // 3) 写入 PostgreSQL
             character.setIsPublic(0);
             int result = characterMapper.insert(character);
             if (result <= 0) {
-                throw new CharacterException(CharacterException.CHARACTER_CREATE_MySQL_ERROR, "新增角色到MySQL失败");
+                throw new CharacterException(CharacterException.CHARACTER_CREATE_DATABASE_ERROR, "新增角色到PostgreSQL失败");
             }
-            log.info("新增角色到MySQL成功，角色ID：{}", character.getId());
+            log.info("新增角色到PostgreSQL成功，角色ID：{}", character.getId());
 
             // 4) 更新角色详情缓存，并删除用户列表缓存让其懒加载重建
             updateCharacterDetailCache(character);
@@ -96,7 +96,7 @@ public class CharacterServiceImpl implements CharacterService {
             log.info("删除临时key成功，临时key：{}", tempKey);
 
         } catch (Exception e) {
-            // MySQL插入失败或其它异常时，清理临时key
+            // PostgreSQL插入失败或其它异常时，清理临时key
             stringRedisTemplate.delete(tempKey);
             log.error("新增角色失败：{}", e.getMessage(), e);
             throw new CharacterException(CharacterException.CHARACTER_CREATE_ERROR, "新增角色失败：" + e.getMessage());

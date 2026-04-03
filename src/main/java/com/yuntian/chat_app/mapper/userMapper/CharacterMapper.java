@@ -26,7 +26,7 @@ public interface CharacterMapper {
      *
      * @param character 角色对象
      */
-    @Update("update `character` set image=#{image} where id=#{id}")
+    @Update("update app_character set image = #{image}, update_time = CURRENT_TIMESTAMP where id = #{id}")
     void updateById(Character character);
 
     /**
@@ -63,7 +63,7 @@ public interface CharacterMapper {
                                     @Param("personality") String personality);
 
 
-     @Update("update `character` set is_public=#{isPublic} where id=#{id}")
+     @Update("update app_character set is_public = #{isPublic}, update_time = CURRENT_TIMESTAMP where id = #{id}")
     void updateIsPublic(@Param("id") Long id,
                         @Param("isPublic") Integer isPublic);
 
@@ -78,6 +78,6 @@ public interface CharacterMapper {
      *
      * @param characterId 角色ID
      */
-    @Update("update `character` set is_deleted=1 where id=#{characterId}")
+    @Update("update app_character set is_deleted = 1, update_time = CURRENT_TIMESTAMP where id = #{characterId}")
     void deleteById(Long characterId);
 }

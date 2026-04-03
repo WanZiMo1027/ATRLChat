@@ -5,16 +5,19 @@ import com.yuntian.chat_app.dto.GetMessagesRequestDTO;
 import com.yuntian.chat_app.dto.GroupChatMessageDTO;
 import com.yuntian.chat_app.dto.JoinGroupRequestDTO;
 import com.yuntian.chat_app.dto.LeaveGroupRequestDTO;
+import com.yuntian.chat_app.entity.Character;
 import com.yuntian.chat_app.entity.ChatGroup;
 import com.yuntian.chat_app.entity.ChatGroupMember;
 import com.yuntian.chat_app.entity.User;
 import com.yuntian.chat_app.mapper.userMapper.UserMapper;
 import com.yuntian.chat_app.result.Result;
+import com.yuntian.chat_app.service.userService.CharacterService;
 import com.yuntian.chat_app.service.userService.ChatGroupMemberService;
 import com.yuntian.chat_app.service.userService.ChatGroupMessageService;
 import com.yuntian.chat_app.service.userService.ChatGroupService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
 import java.util.List;
@@ -33,6 +36,8 @@ public class ChatGroupController {
 
 
     private final ChatGroupMessageService messageService;
+
+    private final CharacterService characterService;
 
     private final UserMapper userMapper;
 
@@ -83,9 +88,15 @@ public class ChatGroupController {
         if (group.getCreatorId() != null) {
             creator = userMapper.selectById(group.getCreatorId());
         }
+        Character character = null;
+        if (group.getCharacterId() != null) {
+            character = characterService.getCharacterById(group.getCharacterId());
+        }
+        int memberCount = memberService.countGroupMembers(groupId);
 
         Map<String, Object> data = new HashMap<>();
         data.put("group", group);
+        data.put("memberCount", memberCount);
         if (creator != null) {
             Map<String, Object> creatorInfo = new HashMap<>();
             creatorInfo.put("id", creator.getId());
@@ -95,7 +106,29 @@ public class ChatGroupController {
         } else {
             data.put("creator", null);
         }
+        if (character != null) {
+            Map<String, Object> characterInfo = new HashMap<>();
+            characterInfo.put("id", character.getId());
+            characterInfo.put("name", character.getName());
+            characterInfo.put("image", character.getImage());
+            data.put("character", characterInfo);
+        } else {
+            data.put("character", null);
+        }
         return Result.success(data);
+    }
+
+    /**
+     * 修改群头像
+     */
+    @PostMapping("/{groupId}/avatar")
+    public Result<String> updateGroupAvatar(@PathVariable Long groupId,
+                                            @RequestParam("file") MultipartFile file) {
+        Long currentUserId = BaseContext.getCurrentId();
+        if (currentUserId == null) {
+            return Result.error("未登录");
+        }
+        return Result.success(groupService.updateGroupAvatar(groupId, currentUserId, file));
     }
 
     /**

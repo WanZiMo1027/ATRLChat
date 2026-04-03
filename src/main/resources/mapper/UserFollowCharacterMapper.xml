@@ -5,11 +5,16 @@
 
     <select id="selectFollowRank" resultType="com.yuntian.chat_app.vo.CharacterFollowVo">
         SELECT
-        c.id ,c.name ,c.image,NULL,COUNT(ufc.character_id) AS followCount
+        c.id,
+        c.name,
+        c.image,
+        NULL AS appearance,
+        NULL AS background,
+        COUNT(ufc.character_id) AS followCount
         FROM
         user_follow_character ufc
         INNER JOIN
-        `character` c ON ufc.character_id = c.id
+        app_character c ON ufc.character_id = c.id
         WHERE
         ufc.status = 1
         <if test="startTime != null">
@@ -19,7 +24,7 @@
             AND ufc.create_time &lt;= #{endTime}
         </if>
         GROUP BY
-        ufc.character_id
+        c.id, c.name, c.image
         ORDER BY
         followCount DESC
         LIMIT #{limit}

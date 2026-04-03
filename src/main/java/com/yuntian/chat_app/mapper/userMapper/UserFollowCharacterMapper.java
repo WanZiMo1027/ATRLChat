@@ -18,8 +18,8 @@ public interface UserFollowCharacterMapper {
     void followCharacter(UserFollowCharacter userFollowCharacter);
 
 
-    @Select("select * from user_follow_character where user_id=#{userId} and character_id=#{id}")
-    UserFollowCharacter selectByUserIdAndCharacterId(Long userId, Long id);
+    @Select("select * from user_follow_character where user_id = #{userId} and character_id = #{id}")
+    UserFollowCharacter selectByUserIdAndCharacterId(@Param("userId") Long userId, @Param("id") Long id);
 
     /**
      * 更新关注状态
@@ -33,7 +33,10 @@ public interface UserFollowCharacterMapper {
      * @param userId 用户ID
      * @return 关注列表
      */
-    @Select("select c.id, c.name ,c.image,c.appearance,c.background from user_follow_character u ,`character` c where u.character_id=c.id and u.user_id=#{userId} and status=1")
+    @Select("select c.id, c.name, c.image, c.appearance, c.background " +
+            "from user_follow_character u " +
+            "join app_character c on u.character_id = c.id " +
+            "where u.user_id = #{userId} and u.status = 1")
     List<CharacterFollowVo> selectFollowList(Long userId);
 
     /**

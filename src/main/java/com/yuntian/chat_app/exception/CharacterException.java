@@ -10,7 +10,7 @@ public class CharacterException extends BaseException {
     /**
      * 新增角色失败异常码
      */
-    public static final int CHARACTER_CREATE_MySQL_ERROR = 2002;
+    public static final int CHARACTER_CREATE_DATABASE_ERROR = 2002;
 
     /**
      * 新增角色失败异常码

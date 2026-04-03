@@ -45,7 +45,7 @@
         FROM ai_call_log
         WHERE memory_id = #{memoryId}
           AND status = 'success'
-          AND request_ts >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+          AND request_ts >= CURRENT_TIMESTAMP - INTERVAL '30 day'
         ORDER BY request_ts DESC
         LIMIT 1000
     </select>

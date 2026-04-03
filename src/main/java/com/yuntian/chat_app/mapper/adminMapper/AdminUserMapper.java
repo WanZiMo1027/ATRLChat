@@ -22,12 +22,12 @@ public interface AdminUserMapper {
      * @param id 用户ID
      * @param status 状态 (0:正常, 1:删除/封禁)
      */
-    @Update("UPDATE user SET is_deleted = #{status}, update_time = NOW() WHERE id = #{id}")
+    @Update("UPDATE app_user SET is_deleted = #{status}, update_time = CURRENT_TIMESTAMP WHERE id = #{id}")
     void updateStatus(@Param("id") Long id, @Param("status") Integer status);
     
     /**
      * 根据ID查询用户
      */
-    @Select("SELECT * FROM user WHERE id = #{id}")
+    @Select("SELECT * FROM app_user WHERE id = #{id}")
     User selectById(Long id);
 }

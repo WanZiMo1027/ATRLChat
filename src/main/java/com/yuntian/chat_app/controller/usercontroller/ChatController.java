@@ -97,7 +97,7 @@ public class ChatController {
                 }
             }
 
-            // 保存用户消息到 MySQL
+            // 保存用户消息到 PostgreSQL
             privateChatMessageService.saveMessage(memoryId, userIdLong, charIdLong, "USER", message, dbImageUrl);
 
             // 7. 调用 AI (Redis 仅作为短期上下文缓冲区)
@@ -112,7 +112,7 @@ public class ChatController {
 
             // 8. 处理 AI 响应
             if (response != null && !response.startsWith("Result(")) {
-                // 保存 AI 回复到 MySQL
+                // 保存 AI 回复到 PostgreSQL
                 privateChatMessageService.saveMessage(memoryId, userIdLong, charIdLong, "AI", response, null);
 
                 // 异步存入 RAG 向量库 (用于未来的语义检索)

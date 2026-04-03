@@ -80,6 +80,10 @@ mybatis:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
     map-underscore-to-camel-case: true
 
+pagehelper:
+  helperDialect: postgresql
+  autoRuntimeDialect: false
+
 chatapp:
   jwt:
     admin-secret-key: ${chatapp.jwt.admin-secret-key}

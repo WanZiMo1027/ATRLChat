@@ -14,7 +14,7 @@ public interface AdminDashboardMapper {
     /**
      * 统计指定日期的注册用户数
      */
-    @Select("SELECT COUNT(*) FROM user WHERE DATE(create_time) = #{date}")
+    @Select("SELECT COUNT(*) FROM app_user WHERE DATE(create_time) = #{date}")
     Long countNewUsersByDate(@Param("date") LocalDate date);
 
     /**
@@ -26,26 +26,26 @@ public interface AdminDashboardMapper {
     /**
      * 统计指定日期的Token消耗总量
      */
-    @Select("SELECT IFNULL(SUM(total_tokens), 0) FROM ai_call_log WHERE DATE(request_ts) = #{date} AND status = 'success'")
+    @Select("SELECT COALESCE(SUM(total_tokens), 0) FROM ai_call_log WHERE DATE(request_ts) = #{date} AND status = 'success'")
     Long countTokenUsageByDate(@Param("date") LocalDate date);
 
     /**
      * 获取过去N天的每日Token消耗 (返回: date -> count)
      */
-    @Select("SELECT DATE_FORMAT(request_ts, '%Y-%m-%d') as date, SUM(total_tokens) as count " +
+    @Select("SELECT TO_CHAR(request_ts, 'YYYY-MM-DD') as date, SUM(total_tokens) as count " +
             "FROM ai_call_log " +
             "WHERE request_ts >= #{startDate} AND status = 'success' " +
-            "GROUP BY DATE_FORMAT(request_ts, '%Y-%m-%d') " +
+            "GROUP BY TO_CHAR(request_ts, 'YYYY-MM-DD') " +
             "ORDER BY date ASC")
     List<Map<String, Object>> getTokenUsageTrend(@Param("startDate") LocalDate startDate);
 
     /**
      * 获取过去N天的每日新增用户 (返回: date -> count)
      */
-    @Select("SELECT DATE_FORMAT(create_time, '%Y-%m-%d') as date, COUNT(*) as count " +
-            "FROM user " +
+    @Select("SELECT TO_CHAR(create_time, 'YYYY-MM-DD') as date, COUNT(*) as count " +
+            "FROM app_user " +
             "WHERE create_time >= #{startDate} " +
-            "GROUP BY DATE_FORMAT(create_time, '%Y-%m-%d') " +
+            "GROUP BY TO_CHAR(create_time, 'YYYY-MM-DD') " +
             "ORDER BY date ASC")
     List<Map<String, Object>> getUserGrowthTrend(@Param("startDate") LocalDate startDate);
 }

@@ -21,7 +21,6 @@
 - Java 17
 - Spring Boot 3.5.5
 - MyBatis
-- MySQL
 - Redis
 - PostgreSQL + pgvector
 - LangChain4j
@@ -56,7 +55,6 @@ src/main/resources
 
 - JDK 17+
 - Maven 3.9+，或者直接使用仓库自带的 `mvnw` / `mvnw.cmd`
-- MySQL 8.x
 - Redis 6.x+
 - PostgreSQL 14+，并安装 `pgvector` 扩展
 - 可用的 DashScope 兼容 OpenAI 接口 Key
@@ -66,11 +64,12 @@ src/main/resources
 
 ### 1. 初始化数据库
 
-MySQL 初始化脚本位于：
+PostgreSQL 初始化脚本位于：
 
 - `src/main/resources/database/database.sql`
+- `src/main/resources/database/test.sql` 提供了迁移后表结构与数据抽样检查语句
 
-RAG 相关向量库默认使用 PostgreSQL，配置项在 `application.yml` 的 `rag.postgres.*` 下。
+业务主库与 RAG 向量库都使用 PostgreSQL。业务表初始化脚本位于 `src/main/resources/database/database.sql`，向量库连接配置在 `application.yml` 的 `rag.postgres.*` 下。
 
 ### 2. 配置应用参数
 
@@ -80,10 +79,10 @@ RAG 相关向量库默认使用 PostgreSQL，配置项在 `application.yml` 的 
 
 | 配置键 | 说明 |
 | --- | --- |
-| `spring.datasource.driver-class-name` | MySQL 驱动类名，通常为 `com.mysql.cj.jdbc.Driver` |
-| `spring.datasource.url` | MySQL 连接串 |
-| `spring.datasource.username` | MySQL 用户名 |
-| `spring.datasource.password` | MySQL 密码 |
+| `spring.datasource.driver-class-name` | PostgreSQL 驱动类名，通常为 `org.postgresql.Driver` |
+| `spring.datasource.url` | PostgreSQL 连接串 |
+| `spring.datasource.username` | PostgreSQL 用户名 |
+| `spring.datasource.password` | PostgreSQL 密码 |
 | `spring.data.redis.host` | Redis 主机 |
 | `spring.data.redis.port` | Redis 端口 |
 | `spring.data.redis.database` | Redis DB |
@@ -207,4 +206,3 @@ AI 对话：
 - 当前默认激活的 Spring Profile 是 `dev`
 - 项目启动类位于 `src/main/java/com/yuntian/chat_app/ChatAppApplication.java`
 - Prometheus 指标已通过 Actuator 暴露
-

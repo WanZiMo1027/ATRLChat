@@ -21,14 +21,14 @@
             content, image_url, create_time, is_deleted
         ) VALUES (
                      #{memoryId}, #{userId}, #{characterId}, #{senderType},
-                     #{content}, #{imageUrl}, NOW(), 0
+                     #{content}, #{imageUrl}, CURRENT_TIMESTAMP, 0
                  )
     </insert>
 
     <select id="selectByMemoryId" resultMap="BaseResultMap">
         SELECT * FROM private_chat_message
         WHERE memory_id = #{memoryId} AND is_deleted = 0
-        ORDER BY create_time ASC  LIMIT #{offset}, #{limit}
+        ORDER BY create_time ASC LIMIT #{limit} OFFSET #{offset}
     </select>
 
     <update id="deleteById">
