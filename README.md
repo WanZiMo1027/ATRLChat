@@ -69,7 +69,7 @@ PostgreSQL 初始化脚本位于：
 - `src/main/resources/database/database.sql`
 - `src/main/resources/database/test.sql` 提供了迁移后表结构与数据抽样检查语句
 
-业务主库与 RAG 向量库都使用 PostgreSQL。业务表初始化脚本位于 `src/main/resources/database/database.sql`，向量库连接配置在 `application.yml` 的 `rag.postgres.*` 下。
+业务表初始化脚本位于 `src/main/resources/database/database.sql`，向量库连接配置在 `application.yml` 的 `rag.postgres.*` 下。
 
 ### 2. 配置应用参数
 
@@ -197,9 +197,6 @@ AI 对话：
 - `src/test/java/com/yuntian/chat_app/ChatAppApplicationTests.java`
 - `src/test/java/com/yuntian/chat_app/PgVectorTest.java`
 
-静态调试页：
-
-- `src/main/resources/static/ai-chat-test.html`
 
 ## 相关说明
 
