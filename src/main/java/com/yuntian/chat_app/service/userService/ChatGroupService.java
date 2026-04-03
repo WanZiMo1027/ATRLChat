@@ -1,6 +1,7 @@
 package com.yuntian.chat_app.service.userService;
 
 import com.yuntian.chat_app.entity.ChatGroup;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -30,6 +31,11 @@ public interface ChatGroupService {
      * 更新群组信息
      */
     boolean updateGroup(ChatGroup group);
+
+    /**
+     * 更新群组头像
+     */
+    String updateGroupAvatar(Long groupId, Long operatorId, MultipartFile file);
 
     /**
      * 解散群组

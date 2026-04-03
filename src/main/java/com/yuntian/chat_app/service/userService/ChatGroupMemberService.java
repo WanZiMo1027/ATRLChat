@@ -17,6 +17,11 @@ public interface ChatGroupMemberService {
     List<ChatGroupMember> getGroupMembers(Long groupId);
 
     /**
+     * 统计群成员数量
+     */
+    int countGroupMembers(Long groupId);
+
+    /**
      * 查询用户是否在群组中
      */
     boolean isMemberInGroup(Long groupId, Long userId);

@@ -85,6 +85,7 @@ public class GroupChatHandler extends SimpleChannelInboundHandler<TextWebSocketF
             }
             if (avatarUrl != null && !avatarUrl.isBlank()) {
                 msg.setSenderAvatarUrl(avatarUrl);
+                msg.setAvatarUrl(avatarUrl);
             }
             Long messageId = messageService.saveMessage(msg);
             msg.setMessageId(messageId);
@@ -162,6 +163,7 @@ public class GroupChatHandler extends SimpleChannelInboundHandler<TextWebSocketF
                         .senderType("AI")
                         .senderName(character.getName())
                         .senderAvatarUrl(character.getImage())
+                        .avatarUrl(character.getImage())
                         .timestamp(System.currentTimeMillis())
                         .build();
 

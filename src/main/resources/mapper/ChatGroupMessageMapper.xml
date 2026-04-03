@@ -24,7 +24,7 @@
             content, content_type, image_url, reply_to_id, create_time
         ) VALUES (
                      #{groupId}, #{senderId}, #{senderType}, #{characterId},
-                     #{content}, #{contentType}, #{imageUrl}, #{replyToId}, NOW()
+                     #{content}, #{contentType}, #{imageUrl}, #{replyToId}, CURRENT_TIMESTAMP
                  )
     </insert>
 
@@ -33,7 +33,7 @@
         SELECT * FROM chat_group_message
         WHERE group_id = #{groupId} AND is_deleted = 0
         ORDER BY create_time DESC
-        LIMIT #{offset}, #{limit}
+        LIMIT #{limit} OFFSET #{offset}
     </select>
 
     <!-- 查询消息详情 -->

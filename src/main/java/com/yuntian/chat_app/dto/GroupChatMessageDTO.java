@@ -26,6 +26,25 @@ public class GroupChatMessageDTO {
     private Long replyToId;        // 回复的消息ID
     private String senderName;     // 发送者名称
     private String senderAvatarUrl;// 发送者头像
+    private String avatarUrl;      // 兼容前端通用消息结构
     private String senderType;     // USER / AI
     private Long timestamp;        // 时间戳
+
+    public String getAvatarUrl() {
+        return avatarUrl != null ? avatarUrl : senderAvatarUrl;
+    }
+
+    public void setAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
+        if (this.senderAvatarUrl == null || this.senderAvatarUrl.isBlank()) {
+            this.senderAvatarUrl = avatarUrl;
+        }
+    }
+
+    public void setSenderAvatarUrl(String senderAvatarUrl) {
+        this.senderAvatarUrl = senderAvatarUrl;
+        if (this.avatarUrl == null || this.avatarUrl.isBlank()) {
+            this.avatarUrl = senderAvatarUrl;
+        }
+    }
 }

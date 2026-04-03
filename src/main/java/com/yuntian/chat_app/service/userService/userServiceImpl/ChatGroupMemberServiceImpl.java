@@ -49,6 +49,11 @@ public class ChatGroupMemberServiceImpl implements ChatGroupMemberService {
     }
 
     @Override
+    public int countGroupMembers(Long groupId) {
+        return memberMapper.countByGroupId(groupId);
+    }
+
+    @Override
     public boolean isMemberInGroup(Long groupId, Long userId) {
         return memberMapper.selectByGroupIdAndUserId(groupId, userId) != null;
     }
