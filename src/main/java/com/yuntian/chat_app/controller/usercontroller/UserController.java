@@ -2,6 +2,7 @@ package com.yuntian.chat_app.controller.usercontroller;
 
 
 import com.yuntian.chat_app.context.BaseContext;
+import com.yuntian.chat_app.dto.UserInfoDTO;
 import com.yuntian.chat_app.entity.User;
 import com.yuntian.chat_app.properties.JwtProperties;
 import com.yuntian.chat_app.result.Result;
@@ -69,11 +70,11 @@ public class UserController {
      * @return
      */
     @GetMapping("/user/UserInfo")
-    public Result<User> getUserInfo() {
+    public Result<UserInfoDTO> getUserInfo() {
         Long id = BaseContext.getCurrentId();
         //通过threadLocal获取当前登录用户的id
         User user = userService.getById(id);
-        return Result.success(user);
+        return Result.success(UserInfoDTO.from(user));
     }
 
     /**
