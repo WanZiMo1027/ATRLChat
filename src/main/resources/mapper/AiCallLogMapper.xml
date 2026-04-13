@@ -50,11 +50,11 @@
         LIMIT 1000
     </select>
     <!-- 查询指定时间范围内的所有记录 -->
-    <select id="getTokenUsageByDateRange" resultType="map">
+    <select id="getTokenUsageByDateRange" resultType="com.yuntian.chat_app.dto.AiCallLogDailyRecordDTO">
         SELECT
-        request_ts,
-        memory_id,
-        total_tokens AS totalTokens
+        request_ts AS requestTs,
+        memory_id AS memoryId,
+        COALESCE(total_tokens, 0) AS totalTokens
         FROM ai_call_log
         WHERE user_id = #{userId}
         AND status = 'success'

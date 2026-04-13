@@ -1,13 +1,12 @@
 package com.yuntian.chat_app.mapper.userMapper;
 
-import com.yuntian.chat_app.dto.TokenStatDTO;
+import com.yuntian.chat_app.dto.AiCallLogDailyRecordDTO;
 import com.yuntian.chat_app.entity.AiCallLogDO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 @Mapper
 public interface AiCallLogMapper {
@@ -29,7 +28,7 @@ public interface AiCallLogMapper {
     /**
      * 查询指定时间范围内的所有记录（不分组，在 Service 层处理）
      */
-    List<Map<String, Object>> getTokenUsageByDateRange(
+    List<AiCallLogDailyRecordDTO> getTokenUsageByDateRange(
             @Param("userId") String userId,
             @Param("begin") LocalDateTime begin,
             @Param("end") LocalDateTime end);
