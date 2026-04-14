@@ -1,6 +1,6 @@
 package com.yuntian.chat_app.service.userService.userServiceImpl;
 
-chazhimport com.yuntian.chat_app.entity.PrivateChatMessage;
+import com.yuntian.chat_app.entity.PrivateChatMessage;
 import com.yuntian.chat_app.mapper.userMapper.PrivateChatMessageMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

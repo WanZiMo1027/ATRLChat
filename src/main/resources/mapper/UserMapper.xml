@@ -8,9 +8,24 @@
     </insert>
     <update id="update">
         update app_user
-        set username = #{username},
-            password = #{password},
+        <set>
+            <if test="username != null">
+                username = #{username},
+            </if>
+            <if test="password != null">
+                password = #{password},
+            </if>
+            <if test="email != null">
+                email = #{email},
+            </if>
+            <if test="phone != null">
+                phone = #{phone},
+            </if>
+            <if test="address != null">
+                address = #{address},
+            </if>
             update_time = CURRENT_TIMESTAMP
+        </set>
         where id = #{id}
     </update>
 </mapper>
