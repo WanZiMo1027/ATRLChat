@@ -31,6 +31,13 @@
         ORDER BY create_time ASC LIMIT #{limit} OFFSET #{offset}
     </select>
 
+    <select id="selectLatestByMemoryId" resultMap="BaseResultMap">
+        SELECT * FROM private_chat_message
+        WHERE memory_id = #{memoryId} AND is_deleted = 0
+        ORDER BY create_time DESC, id DESC
+        LIMIT 1
+    </select>
+
     <update id="deleteById">
         UPDATE private_chat_message SET is_deleted = 1 WHERE id = #{id}
     </update>
