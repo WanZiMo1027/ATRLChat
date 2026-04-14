@@ -3,6 +3,7 @@ package com.yuntian.chat_app.service.userService.userServiceImpl;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.json.JSONUtil;
 import com.yuntian.chat_app.context.BaseContext;
+import com.yuntian.chat_app.dto.UserProfileUpdateDTO;
 import com.yuntian.chat_app.entity.User;
 import com.yuntian.chat_app.exception.UserException;
 import com.yuntian.chat_app.mapper.userMapper.UserMapper;
@@ -84,13 +85,26 @@ public class UserServiceImpl implements UserService {
     /**
      * 修改用户信息
      *
-     * @param user
+     * @param userProfileUpdateDTO
      * @return
      */
     @Override
-    public boolean update(User user) {
+    public boolean update(Long currentUserId, UserProfileUpdateDTO userProfileUpdateDTO) {
+        User user = new User();
+        user.setId(currentUserId);
+        user.setUsername(userProfileUpdateDTO.getUsername());
+        user.setEmail(userProfileUpdateDTO.getEmail());
+        user.setPhone(userProfileUpdateDTO.getPhone());
+        user.setAddress(userProfileUpdateDTO.getAddress());
+        if (userProfileUpdateDTO.getPassword() != null) {
+            user.setPassword(DigestUtils.md5DigestAsHex(userProfileUpdateDTO.getPassword().getBytes()));
+        }
 
         int update = userMapper.update(user);
+        if (update > 0) {
+            String userKey = USER_REDIS_KEY + currentUserId;
+            stringRedisTemplate.opsForValue().set(userKey, JSONUtil.toJsonStr(userMapper.selectById(currentUserId)), 7, TimeUnit.DAYS);
+        }
         return update > 0;
     }
 

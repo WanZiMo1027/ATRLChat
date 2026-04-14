@@ -1,5 +1,6 @@
 package com.yuntian.chat_app.service.userService;
 
+import com.yuntian.chat_app.dto.UserProfileUpdateDTO;
 import com.yuntian.chat_app.entity.User;
 import com.yuntian.chat_app.vo.UserLoginVo;
 import org.springframework.stereotype.Service;
@@ -27,7 +28,7 @@ public interface UserService {
      * @param user
      * @return
      */
-    boolean update(User user);
+    boolean update(Long currentUserId, UserProfileUpdateDTO userProfileUpdateDTO);
 
     /**
      * 根据id查找用户

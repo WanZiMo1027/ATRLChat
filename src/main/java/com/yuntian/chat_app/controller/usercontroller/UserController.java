@@ -3,6 +3,7 @@ package com.yuntian.chat_app.controller.usercontroller;
 
 import com.yuntian.chat_app.context.BaseContext;
 import com.yuntian.chat_app.dto.UserInfoDTO;
+import com.yuntian.chat_app.dto.UserProfileUpdateDTO;
 import com.yuntian.chat_app.entity.User;
 import com.yuntian.chat_app.properties.JwtProperties;
 import com.yuntian.chat_app.result.Result;
@@ -79,13 +80,14 @@ public class UserController {
 
     /**
      * 修改用户信息
-     * @param user
+     * @param userProfileUpdateDTO
      * @return
      */
     @PostMapping("/update")
-    public Result<Boolean> update(@RequestBody User user) {
-        log.info("update: {}", user);
-        boolean update = userService.update(user);
+    public Result<Boolean> update(@RequestBody UserProfileUpdateDTO userProfileUpdateDTO) {
+        Long currentUserId = BaseContext.getCurrentId();
+        log.info("update current user info: userId={}, payload={}", currentUserId, userProfileUpdateDTO);
+        boolean update = userService.update(currentUserId, userProfileUpdateDTO);
         return Result.success(update);
     }
 
@@ -94,9 +96,10 @@ public class UserController {
      * 用户上传头像
      */
     @PostMapping("/updateAvatar")
-    public Result<Boolean> updateUserAvatar(@RequestParam Long userId, @RequestParam String imageUrl) {
-        log.info("updateUserAvatar: userId={}, imageUrl={}", userId, imageUrl);
-        userService.updateUserAvatar(userId, imageUrl);
+    public Result<Boolean> updateUserAvatar(@RequestParam String imageUrl) {
+        Long currentUserId = BaseContext.getCurrentId();
+        log.info("updateUserAvatar: userId={}, imageUrl={}", currentUserId, imageUrl);
+        userService.updateUserAvatar(currentUserId, imageUrl);
         return Result.success(true);
     }
 
