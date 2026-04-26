@@ -74,6 +74,14 @@ logging:
 server:
   port: 8085
 
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+
 mybatis:
   mapper-locations: classpath:mapper/*.xml
   configuration:

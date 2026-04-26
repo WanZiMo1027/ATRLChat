@@ -10,6 +10,8 @@ import com.yuntian.chat_app.result.Result;
 import com.yuntian.chat_app.service.userService.UserService;
 import com.yuntian.chat_app.utils.JwtUtil;
 import com.yuntian.chat_app.vo.UserLoginVo;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +22,7 @@ import java.util.Map;
 @RestController("UserUserController")
 @RequestMapping("/user")
 @Slf4j
+@Tag(name = "用户接口", description = "用户登录、注册、资料与头像接口")
 public class UserController {
 
     @Autowired
@@ -29,6 +32,7 @@ public class UserController {
     private JwtProperties jwtProperties;
 
     @PostMapping("/login")
+    @Operation(summary = "用户登录", description = "根据用户登录信息生成用户 JWT")
     public Result<UserLoginVo> userLogin(@RequestBody User loginReq) {
         log.info("userLogin: {}", loginReq);
 
@@ -60,6 +64,7 @@ public class UserController {
      * @return
      */
     @PostMapping("/register")
+    @Operation(summary = "用户注册", description = "创建普通用户账号")
     public Result<Boolean> register(@RequestBody User user) {
         log.info("register: {}", user);
         boolean register = userService.register(user);
@@ -71,6 +76,7 @@ public class UserController {
      * @return
      */
     @GetMapping("/user/UserInfo")
+    @Operation(summary = "获取当前用户信息", description = "根据 JWT 上下文获取当前登录用户资料")
     public Result<UserInfoDTO> getUserInfo() {
         Long id = BaseContext.getCurrentId();
         //通过threadLocal获取当前登录用户的id
@@ -84,6 +90,7 @@ public class UserController {
      * @return
      */
     @PostMapping("/update")
+    @Operation(summary = "更新当前用户信息", description = "修改当前登录用户的个人资料")
     public Result<Boolean> update(@RequestBody UserProfileUpdateDTO userProfileUpdateDTO) {
         Long currentUserId = BaseContext.getCurrentId();
         log.info("update current user info: userId={}, payload={}", currentUserId, userProfileUpdateDTO);
@@ -96,6 +103,7 @@ public class UserController {
      * 用户上传头像
      */
     @PostMapping("/updateAvatar")
+    @Operation(summary = "更新用户头像地址", description = "保存当前用户头像 URL")
     public Result<Boolean> updateUserAvatar(@RequestParam String imageUrl) {
         Long currentUserId = BaseContext.getCurrentId();
         log.info("updateUserAvatar: userId={}, imageUrl={}", currentUserId, imageUrl);
@@ -108,6 +116,7 @@ public class UserController {
      * @return
      */
     @GetMapping("/avatar")
+    @Operation(summary = "获取当前用户头像", description = "查询当前登录用户头像 URL")
     public Result<String> getUserAvatar() {
         String avatarUrl = userService.getUserAvatar();
         return Result.success(avatarUrl);

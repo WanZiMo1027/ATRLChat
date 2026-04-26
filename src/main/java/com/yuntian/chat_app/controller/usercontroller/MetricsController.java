@@ -6,6 +6,8 @@ import com.yuntian.chat_app.dto.DailyTokenDTO;
 import com.yuntian.chat_app.dto.TokenStatDTO;
 import com.yuntian.chat_app.result.Result;
 import com.yuntian.chat_app.service.userService.AiCallLogService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -19,6 +21,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/metrics")
 @Slf4j
+@Tag(name = "指标接口", description = "AI Token 使用量统计接口")
 public class MetricsController {
 
 
@@ -29,6 +32,7 @@ public class MetricsController {
      * GET /api/metrics/tokens/{memoryId}
      */
     @GetMapping("/tokens/{memoryId}")
+    @Operation(summary = "查询会话 Token 统计", description = "按会话 memoryId 查询 Token 使用统计")
     public Result<Map<String, Object>> getTokenStats(@PathVariable String memoryId) {
         log.info("查询 Token 统计 - memoryId: {}", memoryId);
 
@@ -48,6 +52,7 @@ public class MetricsController {
      * @return 每天的统计数据
      */
     @GetMapping("/tokens/daily")
+    @Operation(summary = "查询每日 Token 使用量", description = "按日期范围查询当前用户每日 Token 使用量")
     public Result<List<DailyTokenDTO>> getDailyTokenUsage(
             @RequestParam(required = false)
             @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate begin,

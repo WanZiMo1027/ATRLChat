@@ -5,6 +5,8 @@ import com.yuntian.chat_app.dto.UserPageQueryDTO;
 import com.yuntian.chat_app.result.PageResult;
 import com.yuntian.chat_app.result.Result;
 import com.yuntian.chat_app.service.adminService.AdminUserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -15,6 +17,7 @@ import org.springframework.web.server.ResponseStatusException;
 @RequestMapping("/admin")
 @Slf4j
 @RequiredArgsConstructor
+@Tag(name = "管理员用户接口", description = "后台用户分页查询和封禁状态管理接口")
 public class AdminUserController {
 
     private final AdminUserService adminUserService;
@@ -25,6 +28,7 @@ public class AdminUserController {
      * @return
      */
     @GetMapping("/user/page")
+    @Operation(summary = "分页查询用户", description = "后台按分页条件查询用户列表")
     public Result<PageResult> page(UserPageQueryDTO dto) {
         validatePageQuery(dto);
         log.info("admin user page: {}", dto);
@@ -40,6 +44,7 @@ public class AdminUserController {
      */
     @Deprecated
     @PostMapping("/user/status/{status}")
+    @Operation(summary = "封禁或解封用户（旧接口）", description = "旧版用户状态修改接口，建议使用 PATCH /admin/users/{id}/status")
     public Result status(@RequestParam Long id, @PathVariable Integer status) {
         validateStatusPayload(id, status);
         log.info("admin update user status: id={}, status={}", id, status);
@@ -48,6 +53,7 @@ public class AdminUserController {
     }
 
     @PatchMapping("/users/{id}/status")
+    @Operation(summary = "更新用户状态", description = "后台封禁或解封指定用户")
     public Result<Void> updateStatus(@PathVariable Long id, @RequestBody AdminUserStatusUpdateDTO request) {
         Integer status = request == null ? null : request.getStatus();
         validateStatusPayload(id, status);

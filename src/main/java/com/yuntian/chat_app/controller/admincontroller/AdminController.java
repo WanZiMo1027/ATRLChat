@@ -6,6 +6,8 @@ import com.yuntian.chat_app.result.Result;
 import com.yuntian.chat_app.service.adminService.AdminService;
 import com.yuntian.chat_app.utils.JwtUtil;
 import com.yuntian.chat_app.vo.AdminLoginVo;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,6 +23,7 @@ import java.util.Map;
 @RequestMapping("/admin")
 @Slf4j
 @RequiredArgsConstructor
+@Tag(name = "管理员认证接口", description = "管理员登录与注册接口")
 public class AdminController {
 
     private final AdminService adminService;
@@ -33,6 +36,7 @@ public class AdminController {
      * @return
      */
     @PostMapping("/login")
+    @Operation(summary = "管理员登录", description = "根据管理员登录信息生成管理员 JWT")
     public Result<AdminLoginVo> login(@RequestBody Admin loginReq) {
         log.info("admin login: {}", loginReq);
 
@@ -64,6 +68,7 @@ public class AdminController {
      * @return
      */
     @PostMapping("/register")
+    @Operation(summary = "管理员注册", description = "创建管理员账号")
     public Result<Boolean> register(@RequestBody Admin admin) {
         log.info("admin register: {}", admin);
         Integer register = adminService.register(admin);

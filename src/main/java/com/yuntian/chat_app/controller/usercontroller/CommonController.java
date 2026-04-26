@@ -5,6 +5,8 @@ import com.yuntian.chat_app.result.Result;
 import com.yuntian.chat_app.service.userService.CharacterService;
 import com.yuntian.chat_app.service.userService.UserService;
 import com.yuntian.chat_app.utils.AliOssUtil;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,6 +21,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/user/common")
 @Slf4j
+@Tag(name = "公共上传接口", description = "通用文件、角色头像和用户头像上传接口")
 public class CommonController {
     @Autowired
     private AliOssUtil aliOssUtil;
@@ -35,6 +38,7 @@ public class CommonController {
      * @return
      */
     @PostMapping("/upload")
+    @Operation(summary = "上传文件", description = "上传文件到 OSS 并返回访问地址")
     public Result<String> upload(MultipartFile file){
         log.info("文件上传：{}", file.getOriginalFilename());
         try {
@@ -57,6 +61,7 @@ public class CommonController {
      * @return 上传结果
      */
     @PostMapping("/uploadCharacterAvatar")
+    @Operation(summary = "上传角色头像", description = "上传角色头像并保存头像 URL")
     public Result<String> uploadCharacterAvatar(@RequestParam("file") MultipartFile file,
                                                 @RequestParam("characterId") Long characterId) {
         log.info("角色头像上传，角色ID：{}，文件名：{}", characterId, file.getOriginalFilename());
@@ -103,6 +108,7 @@ public class CommonController {
      * @return 上传结果
      */
     @PostMapping("/uploadUserAvatar")
+    @Operation(summary = "上传用户头像", description = "上传当前用户头像并保存头像 URL")
     public Result<String> uploadUserAvatar(@RequestParam("file") MultipartFile file) throws IOException {
         Long currentUserId = BaseContext.getCurrentId();
         log.info("用户头像上传，用户ID：{}，文件名：{}", currentUserId, file.getOriginalFilename());

@@ -11,6 +11,8 @@ import com.yuntian.chat_app.service.userService.RagService;
 import com.yuntian.chat_app.service.userService.userServiceImpl.ChatHistoryService;
 import com.yuntian.chat_app.utils.AliOssUtil;
 import dev.langchain4j.data.message.ImageContent;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +27,7 @@ import java.util.UUID;
 
 @Slf4j
 @RestController
+@Tag(name = "AI 对话接口", description = "AI 聊天、会话与历史记录接口")
 public class ChatController {
 
     @Autowired
@@ -45,6 +48,7 @@ public class ChatController {
      * AI 对话核心接口
      */
     @PostMapping(value = "/ai/chat", produces = "text/html;charset=UTF-8")
+    @Operation(summary = "发送 AI 对话消息", description = "支持文本与可选图片，返回 AI 回复内容")
     public String chatStream(String memoryId, String userId, String characterId, String message,
                              @RequestParam(value = "imageFile", required = false) MultipartFile imageFile,
                              Character character) {
@@ -134,6 +138,7 @@ public class ChatController {
      * 获取指定会话的历史记录
      */
     @GetMapping("/ai/chat/history/session/{sessionId}")
+    @Operation(summary = "获取指定会话历史", description = "分页查询指定会话的历史消息")
     public Result<List<Map<String, String>>> getSessionHistory(
             @PathVariable String sessionId,
             @RequestParam(defaultValue = "1") int page,
@@ -149,6 +154,7 @@ public class ChatController {
      * 这个接口返回的是左侧的“会话列表”，不是具体消息
      */
     @GetMapping("/ai/chat/sessions/{userId}/{characterId}")
+    @Operation(summary = "获取用户与角色的会话列表", description = "查询用户和指定角色之间的会话列表")
     public Result<List<Map<String, Object>>> getHistoryList(@PathVariable String userId, @PathVariable String characterId) {
         Long userIdLong = Long.parseLong(userId);
         List<Map<String, Object>> historyList = chatHistoryService.getHistoryList(userIdLong, characterId);
@@ -159,6 +165,7 @@ public class ChatController {
      * 创建新的聊天会话
      */
     @PostMapping("/ai/chat/new/{characterId}")
+    @Operation(summary = "创建新聊天会话", description = "为当前用户和指定角色创建新的聊天会话")
     public Result<String> newChat(@PathVariable String characterId, @RequestBody(required = false) Map<String, String> request) {
         Long userId = BaseContext.getCurrentId();
         // 创建新会话ID并记录到 Redis 列表
@@ -169,6 +176,7 @@ public class ChatController {
     // 废弃或兼容旧接口：获取单个会话的历史记录
     // 建议前端统一迁移到 getSessionHistory 接口
     @GetMapping("/ai/chat/history/{userId}/{characterId}")
+    @Operation(summary = "兼容旧版聊天历史接口", description = "旧版历史接口，建议迁移到按 sessionId 查询")
     public Result<List<Map<String, String>>> getChatHistory(@PathVariable String userId, @PathVariable String characterId) {
         // 简单兼容：返回空，或者让前端调新的接口
         return Result.success(List.of());

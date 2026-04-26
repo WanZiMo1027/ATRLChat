@@ -5,6 +5,8 @@ import com.yuntian.chat_app.entity.UserFollowCharacter;
 import com.yuntian.chat_app.result.Result;
 import com.yuntian.chat_app.service.userService.FollowService;
 import com.yuntian.chat_app.vo.CharacterFollowVo;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -16,6 +18,7 @@ import java.util.List;
 @Slf4j
 @RestController
 @RequestMapping("/user/follow")
+@Tag(name = "关注接口", description = "角色关注、关注状态、列表和排行接口")
 public class FollowController {
 
     @Autowired
@@ -26,6 +29,7 @@ public class FollowController {
      * @param id 角色ID
      */
     @PostMapping("/follow")
+    @Operation(summary = "关注或取消关注角色", description = "切换当前用户对指定角色的关注状态")
     public Result<String> followCharacter(@RequestParam Long id){
         Boolean followCharacter = followService.followCharacter(id);
         if (followCharacter){
@@ -40,6 +44,7 @@ public class FollowController {
      * @return 关注状态
      */
     @GetMapping("/status")
+    @Operation(summary = "查询关注状态", description = "查询当前用户是否关注指定角色")
     public Result getFollowStatus(@RequestParam Long id){
         Long userId = BaseContext.getCurrentId();
         Boolean followCharacter = followService.isFollowCharacter(id,userId);
@@ -51,6 +56,7 @@ public class FollowController {
      * @return 关注列表
      */
     @GetMapping("/list")
+    @Operation(summary = "查询关注列表", description = "查询当前用户关注的角色列表")
     public Result<List<CharacterFollowVo>> getFollowList(){
         Long userId = BaseContext.getCurrentId();
         List<CharacterFollowVo> followList = followService.getFollowList(userId);
@@ -63,6 +69,7 @@ public class FollowController {
      * @return 关注数量
      */
      @GetMapping("/count")
+    @Operation(summary = "查询角色关注数", description = "查询指定角色的关注人数")
     public Result<Integer> getFollowCount(@RequestParam Long id) {
          Integer followCount = followService.getFollowCount(id);
          log.info("获取角色被关注数量 - 角色ID: {}, 关注数量: {}", id, followCount);
@@ -74,6 +81,7 @@ public class FollowController {
      * @return 关注排行榜
      */
      @GetMapping("/rank")
+    @Operation(summary = "查询关注排行", description = "按时间范围查询角色关注排行榜")
     public Result<List<CharacterFollowVo>> getFollowRank(@RequestParam(defaultValue = "all") String timeRange,
                                                          @RequestParam(required = false, defaultValue = "10") Integer limit){
          log.info("获取关注排行榜 - 时间范围: {}, 数量: {}", timeRange, limit);
