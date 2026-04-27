@@ -86,6 +86,7 @@ public class FollowServiceImpl implements FollowService {
 
         // ⭐ 更新关注数缓存
         updateFollowCountCache(id, result);
+        evictFollowRankCaches();
 
         return result;
     }
@@ -209,6 +210,14 @@ public class FollowServiceImpl implements FollowService {
             return JSONUtil.toList(followRankJson, CharacterFollowVo.class);
         }
         return List.of();
+    }
+
+    private void evictFollowRankCaches() {
+        var rankKeys = stringRedisTemplate.keys(RANK_CACHE_KEY + "*");
+        if (rankKeys != null && !rankKeys.isEmpty()) {
+            Long deletedCount = stringRedisTemplate.delete(rankKeys);
+            log.info("Evicted follow rank caches, count={}", deletedCount);
+        }
     }
 
         /**
