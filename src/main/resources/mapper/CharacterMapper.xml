@@ -17,6 +17,82 @@
         <result column="is_public" property="isPublic" jdbcType="SMALLINT"/>
     </resultMap>
 
+    <resultMap id="SquareItemResultMap" type="com.yuntian.chat_app.vo.CharacterSquareItemVo">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="name" property="name" jdbcType="VARCHAR"/>
+        <result column="image" property="image" jdbcType="VARCHAR"/>
+        <result column="intro" property="intro" jdbcType="LONGVARCHAR"/>
+        <result column="follow_count" property="followCount" jdbcType="INTEGER"/>
+        <result column="is_followed" property="isFollowed" jdbcType="BOOLEAN"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <sql id="SquareBaseSelect">
+        SELECT
+            c.id,
+            c.name,
+            c.image,
+            CASE
+                WHEN c.background IS NOT NULL AND c.background != '' THEN c.background
+                ELSE c.appearance
+            END AS intro,
+            COALESCE(fc.follow_count, 0) AS follow_count,
+            CASE WHEN uf.follow_id IS NULL THEN FALSE ELSE TRUE END AS is_followed,
+            c.create_time
+        FROM app_character c
+        LEFT JOIN (
+            SELECT character_id, COUNT(*) AS follow_count
+            FROM user_follow_character
+            WHERE status = 1
+            GROUP BY character_id
+        ) fc ON fc.character_id = c.id
+        LEFT JOIN user_follow_character uf ON uf.character_id = c.id
+            AND uf.status = 1
+            <if test="userId != null">
+                AND uf.user_id = #{userId}
+            </if>
+            <if test="userId == null">
+                AND 1 = 0
+            </if>
+    </sql>
+
+    <sql id="SquareWhere">
+        WHERE c.is_public = 1
+          AND c.is_deleted = 0
+        <if test="keyword != null and keyword != ''">
+          AND (
+              c.name LIKE concat('%', #{keyword}, '%')
+              OR c.background LIKE concat('%', #{keyword}, '%')
+              OR c.appearance LIKE concat('%', #{keyword}, '%')
+              OR c.personality LIKE concat('%', #{keyword}, '%')
+          )
+        </if>
+        <if test="tagIds != null and tagIds.size() > 0">
+          AND c.id IN (
+              SELECT r.character_id
+              FROM character_tag_relation r
+              WHERE r.tag_id IN
+              <foreach collection="tagIds" item="tagId" open="(" separator="," close=")">
+                  #{tagId}
+              </foreach>
+              GROUP BY r.character_id
+              HAVING COUNT(DISTINCT r.tag_id) = #{tagCount}
+          )
+        </if>
+        <if test="tagKeyword != null and tagKeyword != ''">
+          AND c.id IN (
+              SELECT r.character_id
+              FROM character_tag_relation r
+              INNER JOIN character_tag t ON t.id = r.tag_id
+              WHERE t.is_deleted = 0
+                AND t.name LIKE concat('%', #{tagKeyword}, '%')
+          )
+        </if>
+        <if test="tab == 'followed'">
+          AND uf.follow_id IS NOT NULL
+        </if>
+    </sql>
+
     <!-- 插入角色 -->
     <insert id="insert" parameterType="com.yuntian.chat_app.entity.Character"
             useGeneratedKeys="true" keyProperty="id">
@@ -80,5 +156,45 @@
                 AND is_public = 1 AND is_deleted = 0
         </where>
         ORDER BY create_time DESC
+    </select>
+
+    <select id="selectSquarePage" resultMap="SquareItemResultMap">
+        <include refid="SquareBaseSelect"/>
+        <include refid="SquareWhere"/>
+        <choose>
+            <when test="tab == 'followed'">
+                ORDER BY uf.update_time DESC, c.create_time DESC
+            </when>
+            <when test="tab == 'all'">
+                ORDER BY c.create_time DESC
+            </when>
+            <otherwise>
+                ORDER BY follow_count DESC, c.create_time DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="selectSquareTop" resultMap="SquareItemResultMap">
+        <include refid="SquareBaseSelect"/>
+        WHERE c.is_public = 1
+          AND c.is_deleted = 0
+        ORDER BY follow_count DESC, c.create_time DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="countPublicCharacters" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM app_character
+        WHERE is_public = 1
+          AND is_deleted = 0
+    </select>
+
+    <select id="countTodayPublicCharacters" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM app_character
+        WHERE is_public = 1
+          AND is_deleted = 0
+          AND create_time &gt;= CURRENT_DATE
+          AND create_time &lt; CURRENT_DATE + INTERVAL '1 day'
     </select>
 </mapper>

@@ -2,6 +2,9 @@ package com.yuntian.chat_app.service.userService;
 
 
 import com.yuntian.chat_app.entity.Character;
+import com.yuntian.chat_app.result.PageResult;
+import com.yuntian.chat_app.vo.CharacterSquareOverviewVo;
+import com.yuntian.chat_app.vo.CharacterTagVo;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -76,4 +79,28 @@ public interface CharacterService {
      * @return 角色列表
      */
     List<Character> getMyCharacterAndFollow();
+
+     /**
+     * 获取公开角色列表（分页）
+     * @param page 页码
+     * @param pageSize 每页数量
+     * @param keyword 搜索关键词
+     * @param tagIds 标签ID列表
+     * @param tagKeyword 标签搜索关键词
+     * @param tab 分页标签
+     * @return 角色分页结果
+     */
+    PageResult getCharacterSquarePage(Integer page, Integer pageSize, String keyword, List<Long> tagIds, String tagKeyword, String tab);
+
+     /**
+     * 获取公开角色列表（总览）
+     * @return 角色总览VO
+     */
+    CharacterSquareOverviewVo getCharacterSquareOverview();
+
+     /**
+     * 获取公开角色标签列表
+     * @return 角色标签列表
+     */
+    List<CharacterTagVo> getCharacterTags();
 }

@@ -4,10 +4,12 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import com.yuntian.chat_app.vo.CharacterTagVo;
 
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.List;
 
 
 @Data
@@ -78,6 +80,19 @@ public class Character implements Serializable {
      */
     private Integer isDeleted;
 
+    /**
+     * 角色标签ID列表
+     */
+    private List<Long> tagIds;
 
+    /**
+     * 角色标签名称列表
+     */
+    private List<String> tagNames;
+
+    /**
+     * 角色标签列表
+     */
+    private List<CharacterTagVo> tags;
 
 }

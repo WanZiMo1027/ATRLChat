@@ -4,28 +4,36 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONException;
 import cn.hutool.json.JSONUtil;
+import com.github.pagehelper.Page;
+import com.github.pagehelper.PageHelper;
 import com.yuntian.chat_app.context.BaseContext;
 import com.yuntian.chat_app.entity.Character;
 import com.yuntian.chat_app.exception.CharacterException;
 import com.yuntian.chat_app.exception.UserException;
 import com.yuntian.chat_app.mapper.userMapper.CharacterMapper;
+import com.yuntian.chat_app.mapper.userMapper.CharacterTagMapper;
 import com.yuntian.chat_app.mapper.userMapper.UserFollowCharacterMapper;
-import com.yuntian.chat_app.result.Result;
+import com.yuntian.chat_app.result.PageResult;
 import com.yuntian.chat_app.service.userService.CharacterService;
 import com.yuntian.chat_app.service.userService.FollowService;
 import com.yuntian.chat_app.vo.CharacterFollowVo;
+import com.yuntian.chat_app.vo.CharacterSquareItemVo;
+import com.yuntian.chat_app.vo.CharacterSquareOverviewVo;
+import com.yuntian.chat_app.vo.CharacterTagVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.charset.CharacterCodingException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -38,278 +46,207 @@ public class CharacterServiceImpl implements CharacterService {
     private CharacterMapper characterMapper;
 
     @Autowired
+    private CharacterTagMapper characterTagMapper;
+
+    @Autowired
     private FollowService followService;
 
     @Autowired
     private UserFollowCharacterMapper userFollowCharacterMapper;
 
-    // Redis key 规范化
-    // 单个角色详情
     private static final String CHARACTER_DETAIL_KEY = "character:detail:";
-    // 用户角色列表（JSON 数组）
     private static final String CHARACTER_LIST_KEY = "character:list:user:";
-
-    // 临时缓存（可选）
-    private static final String TEMP_CHARACTER_KEY_PREFIX = "temp_character:";
-    // 角色广场列表
     private static final String CHARACTER_SQUARE_KEY = "character:list:public";
+    private static final String CHARACTER_SQUARE_PAGE_KEY_PREFIX = "character:square:page:";
+    private static final String CHARACTER_SQUARE_OVERVIEW_KEY_PREFIX = "character:square:overview:user:";
+    private static final String CHARACTER_TAGS_KEY = "character:tags:all";
     private static final String FOLLOW_LIST_KEY = "follow:list:";
     private static final String FOLLOW_RANK_KEY_PREFIX = "follow:rank:";
 
     private static final long CACHE_TTL_DAYS = 7;
+    private static final long TAG_CACHE_TTL_HOURS = 2;
+    private static final long OVERVIEW_CACHE_TTL_MINUTES = 10;
+    private static final int TAG_NAME_MAX_LENGTH = 50;
+    private static final String[] TAG_COLOR_PALETTE = {
+            "#2ec4b6", "#3b82f6", "#f97316", "#60a5fa", "#8b5cf6",
+            "#ec4899", "#a78bfa", "#ef4444", "#14b8a6", "#6366f1"
+    };
 
     @Override
     @Transactional
     public void addCharacter(Character character) {
-        // 1) 从ThreadLocal拿用户ID
         Long currentUserId = BaseContext.getCurrentId();
-        log.info("当前用户ID：{}", currentUserId);
         if (currentUserId == null) {
-            log.error("无法获取当前用户ID，ThreadLocal中用户ID为空");
-            throw new UserException(UserException.SESSION_EXPIRED, "用户未登录或会话已过期");
+            throw new UserException(UserException.SESSION_EXPIRED, "用户会话过期");
         }
+
         character.setUserId(currentUserId);
-        log.info("设置用户ID到角色对象，用户ID：{}", currentUserId);
-        log.info("新增角色，角色名称：{}", character.getName());
-
-        // 2) 临时写入 Redis（可选）
-        String tempKey = TEMP_CHARACTER_KEY_PREFIX + System.currentTimeMillis() + ":" + Thread.currentThread().getId();
-        try {
-            String characterJson = JSONUtil.toJsonStr(character);
-            stringRedisTemplate.opsForValue().set(tempKey, characterJson, 300, TimeUnit.SECONDS);
-            log.info("角色信息已临时存储到Redis，临时key：{}", tempKey);
-
-            // 3) 写入 PostgreSQL
-            character.setIsPublic(0);
-            int result = characterMapper.insert(character);
-            if (result <= 0) {
-                throw new CharacterException(CharacterException.CHARACTER_CREATE_DATABASE_ERROR, "新增角色到PostgreSQL失败");
-            }
-            log.info("新增角色到PostgreSQL成功，角色ID：{}", character.getId());
-
-            // 4) 更新角色详情缓存，并删除用户列表缓存让其懒加载重建
-            updateCharacterDetailCache(character);
-            evictUserCharacterListCache(character.getUserId());
-
-            // 5) 删除临时 key
-            stringRedisTemplate.delete(tempKey);
-            log.info("删除临时key成功，临时key：{}", tempKey);
-
-        } catch (Exception e) {
-            // PostgreSQL插入失败或其它异常时，清理临时key
-            stringRedisTemplate.delete(tempKey);
-            log.error("新增角色失败：{}", e.getMessage(), e);
-            throw new CharacterException(CharacterException.CHARACTER_CREATE_ERROR, "新增角色失败：" + e.getMessage());
+        character.setIsPublic(0);
+        int result = characterMapper.insert(character);
+        if (result <= 0) {
+            throw new CharacterException(CharacterException.CHARACTER_CREATE_DATABASE_ERROR, "创建角色失败");
         }
+
+        syncCharacterTags(character.getId(), character.getTagIds(), character.getTagNames());
+        attachTagsToCharacter(character);
+        updateCharacterDetailCache(character);
+        evictUserCharacterListCache(currentUserId);
+        evictSquareCaches();
     }
 
     @Override
     public void updateCharacterAvatar(Long characterId, String imageUrl) {
-        // 1) 更新数据库
         Character patch = new Character();
         patch.setId(characterId);
         patch.setImage(imageUrl);
         characterMapper.updateById(patch);
 
-        log.info("角色头像URL已更新，角色ID：{}，URL：{}", characterId, imageUrl);
-
-        // 2) 同步更新Redis角色详情缓存
-        updateCharacterImageInRedis(characterId, imageUrl);
-        log.info("Redis缓存头像已更新（updateCharacterAvatar），角色ID：{}", characterId);
-
-        // 3) 头像更新通常不影响列表数据结构（除非你的列表里也包含 image 字段并需展示）
-        // 如果用户列表缓存中需要展示头像，采用“删列表缓存，下次读取重建”
         Character character = characterMapper.selectById(characterId);
-        if (character != null && character.getUserId() != null) {
+        if (character != null) {
+            character.setImage(imageUrl);
+            attachTagsToCharacter(character);
+            updateCharacterDetailCache(character);
             evictUserCharacterListCache(character.getUserId());
         }
         evictFollowCaches(characterId);
+        evictSquareCaches();
     }
 
-    /**
-     * 获取当前用户角色列表
-     */
     @Override
     public List<Character> getCharacterList() {
         Long currentUserId = BaseContext.getCurrentId();
         if (currentUserId == null) {
-            log.error("无法获取当前用户ID");
-            throw new UserException(UserException.SESSION_EXPIRED, "用户未登录或会话已过期");
+            throw new UserException(UserException.SESSION_EXPIRED, "用户会话过期");
         }
 
         String key = CHARACTER_LIST_KEY + currentUserId;
         String characterListJson = stringRedisTemplate.opsForValue().get(key);
-
         if (StrUtil.isNotBlank(characterListJson)) {
             try {
                 JSONArray array = JSONUtil.parseArray(characterListJson);
-                return JSONUtil.toList(array, Character.class);
+                List<Character> cachedCharacters = JSONUtil.toList(array, Character.class);
+                if (cachedCharacters.stream().anyMatch(character -> character != null && character.getTags() == null)) {
+                    attachTagsToCharacters(cachedCharacters);
+                }
+                return cachedCharacters;
             } catch (JSONException ex) {
-                log.warn("用户角色列表缓存格式异常，将回源DB并重建缓存，key：{}", key, ex);
+                log.warn("角色列表缓存无效, key={}", key, ex);
             }
         }
 
-        log.info("缓存未命中或格式异常，回源DB获取用户角色列表，用户ID：{}", currentUserId);
         List<Character> characters = characterMapper.selectByUserId(currentUserId);
-
-        // 回填缓存（数组 JSON）
+        attachTagsToCharacters(characters);
         stringRedisTemplate.opsForValue().set(key, JSONUtil.toJsonStr(characters), CACHE_TTL_DAYS, TimeUnit.DAYS);
-
         return characters;
     }
 
-
     @Override
     public Character getCharacterById(Long id) {
-        log.info("获取角色详情，角色ID：{}", id);
-
         String characterKey = CHARACTER_DETAIL_KEY + id;
         String characterJson = stringRedisTemplate.opsForValue().get(characterKey);
-
         if (StrUtil.isNotBlank(characterJson)) {
-            log.info("从Redis缓存获取角色详情，角色ID：{}", id);
-            return JSONUtil.toBean(characterJson, Character.class);
+            Character cachedCharacter = JSONUtil.toBean(characterJson, Character.class);
+            if (cachedCharacter != null && cachedCharacter.getTags() == null) {
+                attachTagsToCharacter(cachedCharacter);
+                updateCharacterDetailCache(cachedCharacter);
+            }
+            return cachedCharacter;
         }
 
         Character character = characterMapper.selectById(id);
         if (character != null) {
-            stringRedisTemplate
-                    .opsForValue()
-                    .set(characterKey, JSONUtil.toJsonStr(character), CACHE_TTL_DAYS, TimeUnit.DAYS);
-            log.info("从数据库获取角色详情并缓存到Redis，角色ID：{}", id);
+            attachTagsToCharacter(character);
+            stringRedisTemplate.opsForValue().set(characterKey, JSONUtil.toJsonStr(character), CACHE_TTL_DAYS, TimeUnit.DAYS);
         }
-
         return character;
     }
-    /**
-     * 获取所有角色列表（公开模型）
-     * @return 角色列表
-     */
+
     @Override
     public List<Character> getPublicCharacter() {
-        String characterSquareKey = CHARACTER_SQUARE_KEY;
-        String characterSquareJson = stringRedisTemplate.opsForValue().get(characterSquareKey);
-
+        String characterSquareJson = stringRedisTemplate.opsForValue().get(CHARACTER_SQUARE_KEY);
         if (StrUtil.isNotBlank(characterSquareJson)) {
             try {
                 JSONArray array = JSONUtil.parseArray(characterSquareJson);
-                return JSONUtil.toList(array, Character.class);
+                List<Character> cachedCharacters = JSONUtil.toList(array, Character.class);
+                if (cachedCharacters.stream().anyMatch(character -> character != null && character.getTags() == null)) {
+                    attachTagsToCharacters(cachedCharacters);
+                }
+                return cachedCharacters;
             } catch (JSONException ex) {
-                log.warn("角色广场缓存格式异常，将回源DB并重建缓存，key：{}", characterSquareKey, ex);
+                log.warn("公开角色缓存无效, key={}", CHARACTER_SQUARE_KEY, ex);
             }
         }
 
-        log.info("缓存未命中或格式异常，回源DB获取角色广场列表");
         List<Character> characters = characterMapper.selectAll();
-
-        // 回填缓存（数组 JSON）
-        stringRedisTemplate.opsForValue().set(characterSquareKey, JSONUtil.toJsonStr(characters), CACHE_TTL_DAYS, TimeUnit.DAYS);
-
+        attachTagsToCharacters(characters);
+        stringRedisTemplate.opsForValue().set(CHARACTER_SQUARE_KEY, JSONUtil.toJsonStr(characters), CACHE_TTL_DAYS, TimeUnit.DAYS);
         return characters;
     }
 
-     /**
-     * 检索角色
-     * @param name 角色名称
-     * @param personality 角色性格
-     * @return 角色列表
-     */
-     @Override
+    @Override
     public List<Character> searchCharacter(String name, String personality) {
-        log.info("检索角色，名称：{}，性格：{}", name, personality);
-        // 从数据库查询
-        List<Character> characters = characterMapper.selectByKeyword(name, personality);
-        return characters;
+        return characterMapper.selectByKeyword(name, personality);
     }
 
     @Override
     public Integer publicOrNotCharacter(Long characterId) {
         Character character = characterMapper.selectById(characterId);
-
         if (character == null) {
-            log.info("角色不存在，角色ID：{}", characterId);
             throw new CharacterException(CharacterException.CHARACTER_ERROR, "角色不存在");
         }
 
-        // 切换公开状态
         Integer newStatus = character.getIsPublic() == 0 ? 1 : 0;
-
-
         character.setIsPublic(newStatus);
         characterMapper.updateIsPublic(characterId, newStatus);
 
-        updateCharacterDetailCache(character);           // 更新详情缓存
-        evictUserCharacterListCache(character.getUserId());     // 删除用户列表缓存
-        stringRedisTemplate.delete(CHARACTER_SQUARE_KEY);            // 删除广场缓存
+        attachTagsToCharacter(character);
+        updateCharacterDetailCache(character);
+        evictUserCharacterListCache(character.getUserId());
+        evictSquareCaches();
         return newStatus;
     }
 
     @Override
+    @Transactional
     public void updateCharacter(Character character) {
-        // 1. 先从数据库查出完整的角色对象(包含userId等)
         Character existingCharacter = characterMapper.selectById(character.getId());
         if (existingCharacter == null) {
             throw new CharacterException(CharacterException.CHARACTER_ERROR, "角色不存在");
         }
 
-        // 2. 更新数据库
         characterMapper.updateInfoById(character);
+        syncCharacterTags(character.getId(), character.getTagIds(), character.getTagNames());
 
-        // 3. 重新查询最新数据(确保缓存的是最新值)
         Character updated = characterMapper.selectById(character.getId());
-
-        // 4. 更新详情缓存
+        attachTagsToCharacter(updated);
         updateCharacterDetailCache(updated);
-
-        // 5. 删除用户列表缓存(让下次查询时重建)
         evictUserCharacterListCache(existingCharacter.getUserId());
         evictFollowCaches(character.getId());
-
-        // 6. 如果修改的是公开角色,需要删除广场缓存
-        if (existingCharacter.getIsPublic() == 1 || updated.getIsPublic() == 1) {
-            stringRedisTemplate.delete(CHARACTER_SQUARE_KEY);
-            log.info("角色广场缓存已删除(updateCharacter)，角色ID：{}", character.getId());
-        }
-
-        log.info("角色信息更新完成，角色ID：{}，用户ID：{}", character.getId(), existingCharacter.getUserId());
+        evictSquareCaches();
     }
 
     @Override
     public void deleteCharacter(Long characterId) {
-        // 1. 先查询角色信息(需要userId等信息来清理缓存)
         Character character = characterMapper.selectById(characterId);
         if (character == null) {
-            log.warn("角色不存在，角色ID：{}", characterId);
             throw new CharacterException(CharacterException.CHARACTER_ERROR, "角色不存在");
         }
 
-        // 2. 权限校验(确保只能删除自己的角色)
         Long currentUserId = BaseContext.getCurrentId();
-        if (!character.getUserId().equals(currentUserId)) {
-            log.error("无权删除他人角色，当前用户ID：{}，角色所属用户ID：{}", currentUserId, character.getUserId());
-            throw new RuntimeException("无权删除他人角色");
+        if (currentUserId == null || !character.getUserId().equals(currentUserId)) {
+            throw new RuntimeException("没有权限删除该角色");
         }
 
-        // 3. 逻辑删除数据库记录
         characterMapper.deleteById(characterId);
-        log.info("角色已逻辑删除，角色ID：{}，用户ID：{}", characterId, character.getUserId());
-
-        // 4. 清理三层Redis缓存
         deleteCharacterCaches(character);
-
+        evictSquareCaches();
     }
 
-    /**
-     * 获取我的关注和创建的角色
-     * @return 角色列表
-     */
     @Override
     public List<Character> getMyCharacterAndFollow() {
-        // 1. 获取当前用户ID
         Long currentUserId = BaseContext.getCurrentId();
         if (currentUserId == null) {
-            log.error("无法获取当前用户ID");
-            throw new UserException(UserException.SESSION_EXPIRED, "用户未登录或会话已过期");
+            throw new UserException(UserException.SESSION_EXPIRED, "用户会话过期");
         }
 
         List<Character> myCharacters = getCharacterList();
@@ -343,54 +280,285 @@ public class CharacterServiceImpl implements CharacterService {
         return new ArrayList<>(merged.values());
     }
 
-    /**
-     * 更新Redis中的角色头像（仅角色详情缓存）
-     */
-    private void updateCharacterImageInRedis(Long characterId, String imageUrl) {
-        try {
-            String characterKey = CHARACTER_DETAIL_KEY + characterId;
-            String characterJson = stringRedisTemplate.opsForValue().get(characterKey);
-
-            Character character;
-            if (StrUtil.isNotBlank(characterJson)) {
-                character = JSONUtil.toBean(characterJson, Character.class);
-                character.setImage(imageUrl);
-            } else {
-                // 从数据库加载并更新
-                character = characterMapper.selectById(characterId);
-                if (character == null) {
-                    log.warn("在数据库中未找到角色，无法更新Redis缓存，角色ID：{}", characterId);
-                    return;
-                }
-                character.setImage(imageUrl);
+    @Override
+    public PageResult getCharacterSquarePage(Integer page, Integer pageSize, String keyword, List<Long> tagIds, String tagKeyword, String tab) {
+        int safePage = page == null || page <= 0 ? 1 : page;
+        int safePageSize = pageSize == null || pageSize <= 0 ? 10 : Math.min(pageSize, 100);
+        String safeTab = normalizeTab(tab);
+        List<Long> safeTagIds = normalizeTagIds(tagIds);
+        Long currentUserId = BaseContext.getCurrentId();
+        String safeKeyword = StrUtil.isBlank(keyword) ? null : keyword.trim();
+        String safeTagKeyword = StrUtil.isBlank(tagKeyword) ? null : tagKeyword.trim();
+        String pageCacheKey = buildSquarePageCacheKey(
+                currentUserId,
+                safePage,
+                safePageSize,
+                safeKeyword,
+                safeTagIds,
+                safeTagKeyword,
+                safeTab
+        );
+        String pageJson = stringRedisTemplate.opsForValue().get(pageCacheKey);
+        if (StrUtil.isNotBlank(pageJson)) {
+            try {
+                return JSONUtil.toBean(pageJson, PageResult.class);
+            } catch (JSONException ex) {
+                log.warn("公开角色缓存无效, key={}", pageCacheKey, ex);
+                stringRedisTemplate.delete(pageCacheKey);
             }
+        }
 
-            stringRedisTemplate
-                    .opsForValue()
-                    .set(characterKey, JSONUtil.toJsonStr(character), CACHE_TTL_DAYS, TimeUnit.DAYS);
+        PageHelper.startPage(safePage, safePageSize);
+        List<CharacterSquareItemVo> items = characterMapper.selectSquarePage(
+                safeKeyword,
+                safeTagIds,
+                safeTagIds.size(),
+                safeTagKeyword,
+                safeTab,
+                currentUserId
+        );
+        Page<CharacterSquareItemVo> pageInfo = (Page<CharacterSquareItemVo>) items;
+        attachTags(items);
+        PageResult result = new PageResult(pageInfo.getTotal(), items);
+        stringRedisTemplate.opsForValue().set(pageCacheKey, JSONUtil.toJsonStr(result), OVERVIEW_CACHE_TTL_MINUTES, TimeUnit.MINUTES);
+        return result;
+    }
 
-            log.info("Redis角色头像更新成功，角色ID：{}", characterId);
+    @Override
+    public CharacterSquareOverviewVo getCharacterSquareOverview() {
+        Long currentUserId = BaseContext.getCurrentId();
+        String overviewKey = CHARACTER_SQUARE_OVERVIEW_KEY_PREFIX + (currentUserId == null ? "anonymous" : currentUserId);
+        String overviewJson = stringRedisTemplate.opsForValue().get(overviewKey);
+        if (StrUtil.isNotBlank(overviewJson)) {
+            try {
+                return JSONUtil.toBean(overviewJson, CharacterSquareOverviewVo.class);
+            } catch (JSONException ex) {
+                log.warn("公开角色缓存无效, key={}", overviewKey, ex);
+                stringRedisTemplate.delete(overviewKey);
+            }
+        }
 
-        } catch (Exception e) {
-            log.error("更新Redis角色头像失败：{}", e.getMessage(), e);
+        CharacterSquareOverviewVo overview = new CharacterSquareOverviewVo();
+        overview.setPublicCharacterTotal(nullToZero(characterMapper.countPublicCharacters()));
+        overview.setTodayNewCount(nullToZero(characterMapper.countTodayPublicCharacters()));
+        overview.setHotTags(characterTagMapper.selectHotTags(5));
+
+        List<CharacterSquareItemVo> active = characterMapper.selectSquareTop(currentUserId, 5);
+        attachTags(active);
+        overview.setRecentActive(active);
+
+        List<CharacterSquareItemVo> featured = characterMapper.selectSquareTop(currentUserId, 3);
+        attachTags(featured);
+        overview.setFeaturedCharacters(featured);
+
+        stringRedisTemplate.opsForValue().set(
+                overviewKey,
+                JSONUtil.toJsonStr(overview),
+                OVERVIEW_CACHE_TTL_MINUTES,
+                TimeUnit.MINUTES
+        );
+        return overview;
+    }
+
+    @Override
+    public List<CharacterTagVo> getCharacterTags() {
+        String tagJson = stringRedisTemplate.opsForValue().get(CHARACTER_TAGS_KEY);
+        if (StrUtil.isNotBlank(tagJson)) {
+            try {
+                JSONArray array = JSONUtil.parseArray(tagJson);
+                return JSONUtil.toList(array, CharacterTagVo.class);
+            } catch (JSONException ex) {
+                log.warn("公开角色缓存无效, key={}", CHARACTER_TAGS_KEY, ex);
+            }
+        }
+
+        List<CharacterTagVo> tags = characterTagMapper.selectAll();
+        stringRedisTemplate.opsForValue().set(CHARACTER_TAGS_KEY, JSONUtil.toJsonStr(tags), TAG_CACHE_TTL_HOURS, TimeUnit.HOURS);
+        return tags;
+    }
+
+    private void syncCharacterTags(Long characterId, List<Long> tagIds, List<String> tagNames) {
+        if (tagIds == null && tagNames == null) {
+            return;
+        }
+
+        List<Long> safeTagIds = resolveTagIds(tagIds, tagNames);
+        characterTagMapper.deleteRelationsByCharacterId(characterId);
+        if (!safeTagIds.isEmpty()) {
+            characterTagMapper.insertRelations(characterId, safeTagIds);
+        }
+        evictTagCaches();
+    }
+
+    private void attachTags(List<CharacterSquareItemVo> items) {
+        if (items == null || items.isEmpty()) {
+            return;
+        }
+
+        List<Long> characterIds = items.stream()
+                .map(CharacterSquareItemVo::getId)
+                .filter(id -> id != null)
+                .distinct()
+                .collect(Collectors.toList());
+        if (characterIds.isEmpty()) {
+            return;
+        }
+
+        Map<Long, List<CharacterTagVo>> tagsByCharacterId = characterTagMapper.selectTagsByCharacterIds(characterIds)
+                .stream()
+                .collect(Collectors.groupingBy(CharacterTagVo::getCharacterId, LinkedHashMap::new, Collectors.toList()));
+
+        for (CharacterSquareItemVo item : items) {
+            List<CharacterTagVo> tags = tagsByCharacterId.get(item.getId());
+            item.setTags(tags == null ? new ArrayList<>() : tags);
         }
     }
 
-    /**
-     * 删除用户角色列表缓存，读时重建
-     */
+    private void attachTagsToCharacter(Character character) {
+        if (character == null || character.getId() == null) {
+            return;
+        }
+        List<CharacterTagVo> tags = characterTagMapper.selectTagsByCharacterIds(List.of(character.getId()));
+        character.setTags(tags == null ? new ArrayList<>() : tags);
+        character.setTagIds(character.getTags().stream().map(CharacterTagVo::getId).collect(Collectors.toList()));
+    }
+
+    private void attachTagsToCharacters(List<Character> characters) {
+        if (characters == null || characters.isEmpty()) {
+            return;
+        }
+        List<Long> characterIds = characters.stream()
+                .filter(character -> character != null)
+                .map(Character::getId)
+                .filter(id -> id != null)
+                .distinct()
+                .collect(Collectors.toList());
+        if (characterIds.isEmpty()) {
+            return;
+        }
+        Map<Long, List<CharacterTagVo>> tagsByCharacterId = characterTagMapper.selectTagsByCharacterIds(characterIds)
+                .stream()
+                .collect(Collectors.groupingBy(CharacterTagVo::getCharacterId, LinkedHashMap::new, Collectors.toList()));
+
+        for (Character character : characters) {
+            if (character == null) {
+                continue;
+            }
+            List<CharacterTagVo> tags = tagsByCharacterId.get(character.getId());
+            character.setTags(tags == null ? new ArrayList<>() : tags);
+            character.setTagIds(character.getTags().stream().map(CharacterTagVo::getId).collect(Collectors.toList()));
+        }
+    }
+
+    private List<Long> resolveTagIds(List<Long> tagIds, List<String> tagNames) {
+        LinkedHashSet<Long> uniqueIds = new LinkedHashSet<>(normalizeTagIds(tagIds));
+        List<String> safeTagNames = normalizeTagNames(tagNames);
+        if (safeTagNames.isEmpty()) {
+            return new ArrayList<>(uniqueIds);
+        }
+
+        Map<String, CharacterTagVo> existingByName = characterTagMapper.selectByNames(safeTagNames)
+                .stream()
+                .collect(Collectors.toMap(CharacterTagVo::getName, tag -> tag, (left, right) -> left, LinkedHashMap::new));
+
+        Integer maxSortOrder = characterTagMapper.selectMaxSortOrder();
+        int nextSortOrder = (maxSortOrder == null ? 0 : maxSortOrder) + 10;
+        for (String tagName : safeTagNames) {
+            CharacterTagVo existing = existingByName.get(tagName);
+            if (existing != null && existing.getId() != null) {
+                uniqueIds.add(existing.getId());
+                continue;
+            }
+            Long tagId = characterTagMapper.upsertTag(tagName, pickTagColor(tagName), nextSortOrder);
+            nextSortOrder += 10;
+            if (tagId != null) {
+                uniqueIds.add(tagId);
+            }
+        }
+
+        return new ArrayList<>(uniqueIds);
+    }
+
+    private List<String> normalizeTagNames(List<String> tagNames) {
+        if (tagNames == null || tagNames.isEmpty()) {
+            return List.of();
+        }
+        LinkedHashSet<String> uniqueNames = new LinkedHashSet<>();
+        for (String tagName : tagNames) {
+            if (StrUtil.isBlank(tagName)) {
+                continue;
+            }
+            String normalized = tagName.trim();
+            if (normalized.length() > TAG_NAME_MAX_LENGTH) {
+                throw new CharacterException(CharacterException.CHARACTER_CREATE_ERROR, "标签名称不能超过50个字符");
+            }
+            uniqueNames.add(normalized);
+        }
+        return new ArrayList<>(uniqueNames);
+    }
+
+    private String pickTagColor(String tagName) {
+        return TAG_COLOR_PALETTE[Math.floorMod(tagName.hashCode(), TAG_COLOR_PALETTE.length)];
+    }
+
+    private List<Long> normalizeTagIds(List<Long> tagIds) {
+        if (tagIds == null || tagIds.isEmpty()) {
+            return List.of();
+        }
+        Set<Long> uniqueIds = new LinkedHashSet<>();
+        for (Long tagId : tagIds) {
+            if (tagId != null && tagId > 0) {
+                uniqueIds.add(tagId);
+            }
+        }
+        return new ArrayList<>(uniqueIds);
+    }
+
+    private String normalizeTab(String tab) {
+        if (StrUtil.isBlank(tab)) {
+            return "all";
+        }
+        String normalized = tab.trim();
+        if (List.of("all", "recommend", "active", "mostFollowed", "followed").contains(normalized)) {
+            return normalized;
+        }
+        return "all";
+    }
+
+    private Long nullToZero(Long value) {
+        return value == null ? 0L : value;
+    }
+
+    private String buildSquarePageCacheKey(Long userId,
+                                           Integer page,
+                                           Integer pageSize,
+                                           String keyword,
+                                           List<Long> tagIds,
+                                           String tagKeyword,
+                                           String tab) {
+        String userPart = userId == null ? "anonymous" : String.valueOf(userId);
+        String tagPart = tagIds == null || tagIds.isEmpty()
+                ? "none"
+                : tagIds.stream().map(String::valueOf).collect(Collectors.joining("-"));
+        String raw = String.join("|",
+                userPart,
+                String.valueOf(page),
+                String.valueOf(pageSize),
+                keyword == null ? "" : keyword,
+                tagPart,
+                tagKeyword == null ? "" : tagKeyword,
+                tab == null ? "all" : tab
+        );
+        return CHARACTER_SQUARE_PAGE_KEY_PREFIX + Integer.toHexString(raw.hashCode());
+    }
+
     private void evictUserCharacterListCache(Long userId) {
-        try {
-            String userCharacterListKey = CHARACTER_LIST_KEY + userId;
-            Boolean deleted = stringRedisTemplate.delete(userCharacterListKey);
-            log.info("用户角色列表缓存删除：key={}，deleted={}", userCharacterListKey, deleted);
-        } catch (Exception e) {
-            log.warn("删除用户角色列表缓存失败，用户ID：{}", userId, e);
+        if (userId == null) {
+            return;
         }
+        stringRedisTemplate.delete(CHARACTER_LIST_KEY + userId);
     }
-    /**
-     * 写入/刷新角色详情缓存
-     */
+
     private void evictFollowCaches(Long characterId) {
         evictFollowListCaches(characterId);
         evictFollowRankCaches();
@@ -404,67 +572,73 @@ public class CharacterServiceImpl implements CharacterService {
             }
 
             for (Long followerUserId : followerUserIds) {
-                String followListKey = FOLLOW_LIST_KEY + followerUserId;
-                Boolean deleted = stringRedisTemplate.delete(followListKey);
-                log.info("ey={}eleted={}", followListKey, deleted);
+                stringRedisTemplate.delete(FOLLOW_LIST_KEY + followerUserId);
             }
         } catch (Exception e) {
-            log.warn("{}", characterId, e);
+            log.warn("删除关注列表缓存失败, characterId={}", characterId, e);
         }
     }
 
     private void evictFollowRankCaches() {
         try {
             var rankKeys = stringRedisTemplate.keys(FOLLOW_RANK_KEY_PREFIX + "*");
-            if (rankKeys == null || rankKeys.isEmpty()) {
-                return;
+            if (rankKeys != null && !rankKeys.isEmpty()) {
+                stringRedisTemplate.delete(rankKeys);
             }
-            Long deletedCount = stringRedisTemplate.delete(rankKeys);
-            log.info("count={}", deletedCount);
         } catch (Exception e) {
-            log.warn("", e);
+            log.warn("删除关注排名缓存失败", e);
         }
     }
 
     private void updateCharacterDetailCache(Character character) {
-        try {
-            String characterKey = CHARACTER_DETAIL_KEY + character.getId();
-            String characterJson = JSONUtil.toJsonStr(character);
-            stringRedisTemplate
-                    .opsForValue()
-                    .set(characterKey, characterJson, CACHE_TTL_DAYS, TimeUnit.DAYS);
-            log.info("角色详情已更新到Redis缓存，角色ID：{}，用户ID：{}", character.getId(), character.getUserId());
-        } catch (Exception e) {
-            log.error("更新角色详情到Redis失败：{}", e.getMessage(), e);
+        if (character == null || character.getId() == null) {
+            return;
         }
+        stringRedisTemplate.opsForValue().set(CHARACTER_DETAIL_KEY + character.getId(), JSONUtil.toJsonStr(character), CACHE_TTL_DAYS, TimeUnit.DAYS);
     }
 
-    /**
-     * 删除角色相关的所有缓存
-     * @param character 角色对象
-     */
     private void deleteCharacterCaches(Character character) {
+        if (character == null || character.getId() == null) {
+            return;
+        }
+        stringRedisTemplate.delete(CHARACTER_DETAIL_KEY + character.getId());
+        evictUserCharacterListCache(character.getUserId());
+        evictFollowCaches(character.getId());
+    }
+
+    private void evictSquareCaches() {
+        stringRedisTemplate.delete(CHARACTER_SQUARE_KEY);
+        evictSquarePageCaches();
+        evictSquareOverviewCaches();
+    }
+
+    private void evictTagCaches() {
+        stringRedisTemplate.delete(CHARACTER_TAGS_KEY);
+        evictSquarePageCaches();
+        evictSquareOverviewCaches();
+    }
+
+    private void evictSquarePageCaches() {
         try {
-            // ① 删除角色详情缓存
-            String detailKey = CHARACTER_DETAIL_KEY + character.getId();
-            Boolean detailDeleted = stringRedisTemplate.delete(detailKey);
-            log.info("角色详情缓存删除：key={}，deleted={}", detailKey, detailDeleted);
-
-            // ② 删除用户角色列表缓存
-            evictUserCharacterListCache(character.getUserId());
-
-            // ③ 如果是公开角色，删除角色广场缓存
-            if (character.getIsPublic() != null && character.getIsPublic() == 1) {
-                Boolean squareDeleted = stringRedisTemplate.delete(CHARACTER_SQUARE_KEY);
-                log.info("角色广场缓存删除：key={}，deleted={}", CHARACTER_SQUARE_KEY, squareDeleted);
+            var pageKeys = stringRedisTemplate.keys(CHARACTER_SQUARE_PAGE_KEY_PREFIX + "*");
+            if (pageKeys != null && !pageKeys.isEmpty()) {
+                Long deletedCount = stringRedisTemplate.delete(pageKeys);
+                log.info("删除公开角色缓存, count={}", deletedCount);
             }
-
-            log.info("角色相关缓存已全部清理，角色ID：{}", character.getId());
-
         } catch (Exception e) {
-            log.error("清理角色缓存失败，角色ID：{}，错误：{}", character.getId(), e.getMessage(), e);
-            // 缓存删除失败不阻断主流程，但需要记录日志
+            log.warn("删除公开角色缓存失败", e);
         }
     }
 
+    private void evictSquareOverviewCaches() {
+        try {
+            var overviewKeys = stringRedisTemplate.keys(CHARACTER_SQUARE_OVERVIEW_KEY_PREFIX + "*");
+            if (overviewKeys != null && !overviewKeys.isEmpty()) {
+                Long deletedCount = stringRedisTemplate.delete(overviewKeys);
+                log.info("删除公开角色缓存, count={}", deletedCount);
+            }
+        } catch (Exception e) {
+            log.warn("删除公开角色缓存失败", e);
+        }
+    }
 }

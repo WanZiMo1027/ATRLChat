@@ -2,6 +2,7 @@ package com.yuntian.chat_app.mapper.userMapper;
 
 
 import com.yuntian.chat_app.entity.Character;
+import com.yuntian.chat_app.vo.CharacterSquareItemVo;
 import org.apache.ibatis.annotations.*;
 
 import java.util.List;
@@ -80,4 +81,18 @@ public interface CharacterMapper {
      */
     @Update("update app_character set is_deleted = 1, update_time = CURRENT_TIMESTAMP where id = #{characterId}")
     void deleteById(Long characterId);
+
+    List<CharacterSquareItemVo> selectSquarePage(@Param("keyword") String keyword,
+                                                 @Param("tagIds") List<Long> tagIds,
+                                                 @Param("tagCount") Integer tagCount,
+                                                 @Param("tagKeyword") String tagKeyword,
+                                                 @Param("tab") String tab,
+                                                 @Param("userId") Long userId);
+
+    List<CharacterSquareItemVo> selectSquareTop(@Param("userId") Long userId,
+                                                @Param("limit") Integer limit);
+
+    Long countPublicCharacters();
+
+    Long countTodayPublicCharacters();
 }

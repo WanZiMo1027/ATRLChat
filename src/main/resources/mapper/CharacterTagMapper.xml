@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yuntian.chat_app.mapper.userMapper.CharacterTagMapper">
+
+    <resultMap id="TagVoResultMap" type="com.yuntian.chat_app.vo.CharacterTagVo">
+        <id column="id" property="id"/>
+        <result column="character_id" property="characterId"/>
+        <result column="name" property="name"/>
+        <result column="color" property="color"/>
+        <result column="sort_order" property="sortOrder"/>
+        <result column="character_count" property="characterCount"/>
+    </resultMap>
+
+    <select id="selectAll" resultMap="TagVoResultMap">
+        SELECT id, name, color, sort_order, 0 AS character_count
+        FROM character_tag
+        WHERE is_deleted = 0
+        ORDER BY sort_order ASC, id ASC
+    </select>
+
+    <select id="selectHotTags" resultMap="TagVoResultMap">
+        SELECT
+            t.id,
+            t.name,
+            t.color,
+            t.sort_order,
+            COUNT(DISTINCT c.id) AS character_count
+        FROM character_tag t
+        LEFT JOIN character_tag_relation r ON r.tag_id = t.id
+        LEFT JOIN app_character c ON c.id = r.character_id
+            AND c.is_public = 1
+            AND c.is_deleted = 0
+        WHERE t.is_deleted = 0
+        GROUP BY t.id, t.name, t.color, t.sort_order
+        ORDER BY character_count DESC, t.sort_order ASC, t.id ASC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectTagsByCharacterIds" resultMap="TagVoResultMap">
+        SELECT
+            r.character_id AS character_id,
+            t.id,
+            t.name,
+            t.color,
+            t.sort_order,
+            0 AS character_count
+        FROM character_tag_relation r
+        INNER JOIN character_tag t ON t.id = r.tag_id
+        WHERE t.is_deleted = 0
+          AND r.character_id IN
+        <foreach collection="characterIds" item="characterId" open="(" separator="," close=")">
+            #{characterId}
+        </foreach>
+        ORDER BY r.character_id ASC, t.sort_order ASC, t.id ASC
+    </select>
+
+    <select id="selectByNames" resultMap="TagVoResultMap">
+        SELECT id, name, color, sort_order, 0 AS character_count
+        FROM character_tag
+        WHERE is_deleted = 0
+          AND name IN
+        <foreach collection="names" item="name" open="(" separator="," close=")">
+            #{name}
+        </foreach>
+    </select>
+
+    <select id="upsertTag" resultType="java.lang.Long">
+        INSERT INTO character_tag (name, color, sort_order, create_time, update_time, is_deleted)
+        VALUES (#{name}, #{color}, #{sortOrder}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0)
+        ON CONFLICT (name) DO UPDATE SET
+            update_time = CURRENT_TIMESTAMP,
+            is_deleted = 0
+        RETURNING id
+    </select>
+
+    <select id="selectMaxSortOrder" resultType="java.lang.Integer">
+        SELECT COALESCE(MAX(sort_order), 0)
+        FROM character_tag
+        WHERE is_deleted = 0
+    </select>
+
+    <delete id="deleteRelationsByCharacterId">
+        DELETE FROM character_tag_relation
+        WHERE character_id = #{characterId}
+    </delete>
+
+    <insert id="insertRelations">
+        INSERT INTO character_tag_relation (character_id, tag_id, create_time)
+        VALUES
+        <foreach collection="tagIds" item="tagId" separator=",">
+            (#{characterId}, #{tagId}, CURRENT_TIMESTAMP)
+        </foreach>
+        ON CONFLICT (character_id, tag_id) DO NOTHING
+    </insert>
+</mapper>

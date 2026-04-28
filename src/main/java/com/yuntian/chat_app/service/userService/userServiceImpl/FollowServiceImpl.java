@@ -37,6 +37,8 @@ public class FollowServiceImpl implements FollowService {
     private static final int CACHE_TTL_DAYS = 1;
     private static final String FOLLOW_COUNT_KEY = "follow:count:";
     private static final String RANK_CACHE_KEY = "follow:rank:";
+    private static final String CHARACTER_SQUARE_PAGE_KEY_PREFIX = "character:square:page:";
+    private static final String CHARACTER_SQUARE_OVERVIEW_KEY_PREFIX = "character:square:overview:user:";
     /**
      * 关注角色或取消关注角色
      * @param id 角色ID
@@ -87,6 +89,8 @@ public class FollowServiceImpl implements FollowService {
         // ⭐ 更新关注数缓存
         updateFollowCountCache(id, result);
         evictFollowRankCaches();
+        evictCharacterSquarePageCaches();
+        evictCharacterSquareOverviewCaches();
 
         return result;
     }
@@ -217,6 +221,22 @@ public class FollowServiceImpl implements FollowService {
         if (rankKeys != null && !rankKeys.isEmpty()) {
             Long deletedCount = stringRedisTemplate.delete(rankKeys);
             log.info("Evicted follow rank caches, count={}", deletedCount);
+        }
+    }
+
+    private void evictCharacterSquareOverviewCaches() {
+        var overviewKeys = stringRedisTemplate.keys(CHARACTER_SQUARE_OVERVIEW_KEY_PREFIX + "*");
+        if (overviewKeys != null && !overviewKeys.isEmpty()) {
+            Long deletedCount = stringRedisTemplate.delete(overviewKeys);
+            log.info("Evicted character square overview caches, count={}", deletedCount);
+        }
+    }
+
+    private void evictCharacterSquarePageCaches() {
+        var pageKeys = stringRedisTemplate.keys(CHARACTER_SQUARE_PAGE_KEY_PREFIX + "*");
+        if (pageKeys != null && !pageKeys.isEmpty()) {
+            Long deletedCount = stringRedisTemplate.delete(pageKeys);
+            log.info("Evicted character square page caches, count={}", deletedCount);
         }
     }
 
