@@ -31,4 +31,5 @@ build/
 
 # Local development secrets
 src/main/resources/application-dev.yml
+AGENTS.md
 

@@ -1,6 +1,8 @@
 package com.yuntian.chat_app.service.userService;
 
 import com.yuntian.chat_app.entity.ChatGroupMember;
+import com.yuntian.chat_app.vo.ChatGroupJoinRequestVo;
+import com.yuntian.chat_app.vo.JoinGroupResultVo;
 
 import java.util.List;
 
@@ -9,7 +11,7 @@ public interface ChatGroupMemberService {
     /**
      * 加入群组
      */
-    boolean joinGroup(Long groupId, Long userId, String nickname);
+    JoinGroupResultVo joinGroup(Long groupId, Long userId, String nickname);
 
     /**
      * 查询群成员列表
@@ -35,4 +37,10 @@ public interface ChatGroupMemberService {
      * 踢出成员
      */
     boolean removeMember(Long groupId, Long userId, Long operatorId);
+
+    List<ChatGroupJoinRequestVo> getJoinRequests(Long groupId, String status, Long operatorId);
+
+    boolean approveJoinRequest(Long requestId, Long operatorId);
+
+    boolean rejectJoinRequest(Long requestId, Long operatorId, String reason);
 }

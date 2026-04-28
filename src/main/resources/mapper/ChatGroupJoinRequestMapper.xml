@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yuntian.chat_app.mapper.userMapper.ChatGroupJoinRequestMapper">
+
+    <resultMap id="BaseResultMap" type="com.yuntian.chat_app.entity.ChatGroupJoinRequest">
+        <id column="id" property="id"/>
+        <result column="group_id" property="groupId"/>
+        <result column="user_id" property="userId"/>
+        <result column="nickname" property="nickname"/>
+        <result column="status" property="status"/>
+        <result column="reviewer_id" property="reviewerId"/>
+        <result column="review_time" property="reviewTime"/>
+        <result column="reject_reason" property="rejectReason"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="is_deleted" property="isDeleted"/>
+    </resultMap>
+
+    <resultMap id="RequestVoResultMap" type="com.yuntian.chat_app.vo.ChatGroupJoinRequestVo">
+        <id column="request_id" property="requestId"/>
+        <result column="group_id" property="groupId"/>
+        <result column="user_id" property="userId"/>
+        <result column="nickname" property="nickname"/>
+        <result column="username" property="username"/>
+        <result column="avatar_url" property="avatarUrl"/>
+        <result column="status" property="status"/>
+        <result column="reviewer_id" property="reviewerId"/>
+        <result column="review_time" property="reviewTime"/>
+        <result column="reject_reason" property="rejectReason"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO chat_group_join_request (
+            group_id, user_id, nickname, status, create_time, update_time
+        ) VALUES (
+            #{groupId}, #{userId}, #{nickname}, #{status}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM chat_group_join_request
+        WHERE id = #{id} AND is_deleted = 0
+    </select>
+
+    <select id="selectPendingByGroupIdAndUserId" resultMap="BaseResultMap">
+        SELECT * FROM chat_group_join_request
+        WHERE group_id = #{groupId}
+          AND user_id = #{userId}
+          AND status = 'PENDING'
+          AND is_deleted = 0
+        ORDER BY create_time DESC
+        LIMIT 1
+    </select>
+
+    <select id="selectByGroupIdAndStatus" resultMap="RequestVoResultMap">
+        SELECT
+            r.id AS request_id,
+            r.group_id,
+            r.user_id,
+            r.nickname,
+            u.username,
+            u.avatar_url,
+            r.status,
+            r.reviewer_id,
+            r.review_time,
+            r.reject_reason,
+            r.create_time,
+            r.update_time
+        FROM chat_group_join_request r
+        LEFT JOIN app_user u ON u.id = r.user_id AND u.is_deleted = 0
+        WHERE r.group_id = #{groupId}
+          AND r.is_deleted = 0
+        <if test="status != null and status != ''">
+          AND r.status = #{status}
+        </if>
+        ORDER BY r.create_time DESC
+    </select>
+
+    <update id="updateStatus">
+        UPDATE chat_group_join_request
+        SET status = #{status},
+            reviewer_id = #{reviewerId},
+            review_time = CURRENT_TIMESTAMP,
+            reject_reason = #{rejectReason},
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+          AND status = 'PENDING'
+          AND is_deleted = 0
+    </update>
+</mapper>

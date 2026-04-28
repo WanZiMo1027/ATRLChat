@@ -15,6 +15,12 @@ public class GroupException extends BaseException {
 
     public static final int GROUP_AVATAR_UPLOAD_FAILED = 3005;
 
+    public static final int GROUP_FULL = 3006;
+
+    public static final int GROUP_JOIN_REQUEST_NOT_FOUND = 3007;
+
+    public static final int GROUP_INVALID_JOIN_REQUEST_STATUS = 3008;
+
     public GroupException(int code, String message) {
         super(code, message);
     }

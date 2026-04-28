@@ -1,12 +1,17 @@
 package com.yuntian.chat_app.service.userService.userServiceImpl;
 
+import com.github.pagehelper.Page;
+import com.github.pagehelper.PageHelper;
 import com.yuntian.chat_app.entity.ChatGroup;
 import com.yuntian.chat_app.entity.ChatGroupMember;
 import com.yuntian.chat_app.exception.GroupException;
 import com.yuntian.chat_app.mapper.userMapper.ChatGroupMapper;
 import com.yuntian.chat_app.mapper.userMapper.ChatGroupMemberMapper;
+import com.yuntian.chat_app.netty.NettyGroupManager;
+import com.yuntian.chat_app.result.PageResult;
 import com.yuntian.chat_app.service.userService.ChatGroupService;
 import com.yuntian.chat_app.utils.AliOssUtil;
+import com.yuntian.chat_app.vo.ChatGroupHallItemVo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,9 +32,12 @@ public class ChatGroupServiceImpl implements ChatGroupService {
 
     private final AliOssUtil aliOssUtil;
 
+    private final NettyGroupManager nettyGroupManager;
+
     @Override
     @Transactional
-    public Long createGroup(Long creatorId, String groupName, Long characterId, String description) {
+    public Long createGroup(Long creatorId, String groupName, Long characterId, String description,
+                            Integer isPublic, Integer joinRequiresApproval) {
         // 1. 创建群组
         ChatGroup group = new ChatGroup();
         group.setId(generateGroupId());
@@ -38,6 +46,8 @@ public class ChatGroupServiceImpl implements ChatGroupService {
         group.setCharacterId(characterId);
         group.setDescription(description);
         group.setMaxMembers(500);
+        group.setIsPublic(normalizeSwitch(isPublic, 1));
+        group.setJoinRequiresApproval(normalizeSwitch(joinRequiresApproval, 0));
 
         chatGroupMapper.insert(group);
 
@@ -49,6 +59,21 @@ public class ChatGroupServiceImpl implements ChatGroupService {
         memberMapper.insert(owner);
 
         return group.getId();
+    }
+
+    @Override
+    public PageResult getHallGroups(Integer page, Integer size, String keyword, Long currentUserId) {
+        int safePage = page == null || page <= 0 ? 1 : page;
+        int safeSize = size == null || size <= 0 ? 10 : Math.min(size, 100);
+        String safeKeyword = keyword == null || keyword.trim().isEmpty() ? null : keyword.trim();
+
+        PageHelper.startPage(safePage, safeSize);
+        List<ChatGroupHallItemVo> items = chatGroupMapper.selectHallGroups(safeKeyword, currentUserId);
+        Page<ChatGroupHallItemVo> pageInfo = (Page<ChatGroupHallItemVo>) items;
+        for (ChatGroupHallItemVo item : items) {
+            item.setOnlineCount(nettyGroupManager.getOnlineCount(item.getGroupId()));
+        }
+        return new PageResult(pageInfo.getTotal(), items);
     }
 
     private Long generateGroupId() {
@@ -79,6 +104,32 @@ public class ChatGroupServiceImpl implements ChatGroupService {
     @Override
     public boolean updateGroup(ChatGroup group) {
         return chatGroupMapper.updateById(group) > 0;
+    }
+
+    @Override
+    public boolean updateGroupPublic(Long groupId, Long operatorId, Integer isPublic) {
+        ensureGroupAdmin(groupId, operatorId);
+        ChatGroup patch = new ChatGroup();
+        patch.setId(groupId);
+        patch.setIsPublic(normalizeSwitch(isPublic, 1));
+        return updateGroup(patch);
+    }
+
+    @Override
+    public boolean updateJoinRequiresApproval(Long groupId, Long operatorId, Integer joinRequiresApproval) {
+        ensureGroupAdmin(groupId, operatorId);
+        ChatGroup patch = new ChatGroup();
+        patch.setId(groupId);
+        patch.setJoinRequiresApproval(normalizeSwitch(joinRequiresApproval, 0));
+        return updateGroup(patch);
+    }
+
+    @Override
+    public int getOnlineCount(Long groupId) {
+        if (chatGroupMapper.selectById(groupId) == null) {
+            throw new GroupException(GroupException.GROUP_NOT_FOUND, "群不存在");
+        }
+        return nettyGroupManager.getOnlineCount(groupId);
     }
 
     @Override
@@ -121,6 +172,27 @@ public class ChatGroupServiceImpl implements ChatGroupService {
         }
 
         return chatGroupMapper.deleteById(groupId) > 0;
+    }
+
+    private int normalizeSwitch(Integer value, int defaultValue) {
+        if (value == null) {
+            return defaultValue;
+        }
+        return value == 1 ? 1 : 0;
+    }
+
+    private void ensureGroupAdmin(Long groupId, Long operatorId) {
+        if (operatorId == null) {
+            throw new GroupException(GroupException.GROUP_PERMISSION_DENIED, "未登录");
+        }
+        ChatGroup group = chatGroupMapper.selectById(groupId);
+        if (group == null) {
+            throw new GroupException(GroupException.GROUP_NOT_FOUND, "群不存在");
+        }
+        ChatGroupMember operator = memberMapper.selectByGroupIdAndUserId(groupId, operatorId);
+        if (operator == null || "MEMBER".equals(operator.getRole())) {
+            throw new GroupException(GroupException.GROUP_PERMISSION_DENIED, "无权限操作群设置");
+        }
     }
 
     private void validateAvatarFile(MultipartFile file) {

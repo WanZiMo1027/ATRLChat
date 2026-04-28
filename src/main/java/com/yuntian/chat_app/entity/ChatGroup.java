@@ -17,6 +17,8 @@ public class ChatGroup {
     private Long characterId;
     private String description;
     private Integer maxMembers;
+    private Integer isPublic;
+    private Integer joinRequiresApproval;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
     private Integer isDeleted;

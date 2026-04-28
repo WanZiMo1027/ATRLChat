@@ -1,6 +1,7 @@
 package com.yuntian.chat_app.mapper.userMapper;
 
 import com.yuntian.chat_app.entity.ChatGroup;
+import com.yuntian.chat_app.vo.ChatGroupHallItemVo;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
@@ -16,6 +17,9 @@ public interface ChatGroupMapper {
 
     // 根据创建者查询群组列表
     List<ChatGroup> selectByCreatorId(@Param("creatorId") Long creatorId);
+
+    List<ChatGroupHallItemVo> selectHallGroups(@Param("keyword") String keyword,
+                                               @Param("userId") Long userId);
 
     // 更新群组信息
     int updateById(ChatGroup group);

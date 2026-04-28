@@ -24,6 +24,13 @@
         ) VALUES (
                      #{groupId}, #{userId}, #{role}, #{nickname}, CURRENT_TIMESTAMP
                  )
+        ON CONFLICT (group_id, user_id) DO UPDATE SET
+            role = EXCLUDED.role,
+            nickname = EXCLUDED.nickname,
+            join_time = CURRENT_TIMESTAMP,
+            last_read_time = NULL,
+            is_muted = 0,
+            is_deleted = 0
     </insert>
 
     <!-- 查询群组成员 -->

@@ -12,19 +12,35 @@
         <result column="character_id" property="characterId"/>
         <result column="description" property="description"/>
         <result column="max_members" property="maxMembers"/>
+        <result column="is_public" property="isPublic"/>
+        <result column="join_requires_approval" property="joinRequiresApproval"/>
         <result column="create_time" property="createTime"/>
         <result column="update_time" property="updateTime"/>
         <result column="is_deleted" property="isDeleted"/>
+    </resultMap>
+
+    <resultMap id="HallItemResultMap" type="com.yuntian.chat_app.vo.ChatGroupHallItemVo">
+        <id column="group_id" property="groupId"/>
+        <result column="name" property="name"/>
+        <result column="avatar_url" property="avatarUrl"/>
+        <result column="description" property="description"/>
+        <result column="member_count" property="memberCount"/>
+        <result column="max_members" property="maxMembers"/>
+        <result column="is_member" property="isMember"/>
+        <result column="join_request_status" property="joinRequestStatus"/>
+        <result column="join_requires_approval" property="joinRequiresApproval"/>
     </resultMap>
 
     <!-- 插入 -->
     <insert id="insert" parameterType="com.yuntian.chat_app.entity.ChatGroup">
         INSERT INTO chat_group (
             id, name, avatar_url, creator_id, character_id,
-            description, max_members, create_time, update_time
+            description, max_members, is_public, join_requires_approval,
+            create_time, update_time
         ) VALUES (
                      #{id}, #{name}, #{avatarUrl}, #{creatorId}, #{characterId},
-                     #{description}, #{maxMembers}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+                     #{description}, #{maxMembers}, #{isPublic}, #{joinRequiresApproval},
+                     CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
                  )
     </insert>
 
@@ -41,6 +57,51 @@
         ORDER BY create_time DESC
     </select>
 
+    <select id="selectHallGroups" resultMap="HallItemResultMap">
+        SELECT
+            g.id AS group_id,
+            g.name,
+            g.avatar_url,
+            g.description,
+            g.max_members,
+            g.join_requires_approval,
+            COUNT(DISTINCT m.id) AS member_count,
+            CASE WHEN mine.id IS NULL THEN FALSE ELSE TRUE END AS is_member,
+            jr.status AS join_request_status
+        FROM chat_group g
+        LEFT JOIN chat_group_member m
+            ON m.group_id = g.id
+            AND m.is_deleted = 0
+        LEFT JOIN chat_group_member mine
+            ON mine.group_id = g.id
+            AND mine.user_id = #{userId}
+            AND mine.is_deleted = 0
+        LEFT JOIN chat_group_join_request jr
+            ON jr.group_id = g.id
+            AND jr.user_id = #{userId}
+            AND jr.status = 'PENDING'
+            AND jr.is_deleted = 0
+        WHERE g.is_deleted = 0
+          AND g.is_public = 1
+        <if test="keyword != null and keyword != ''">
+          AND (
+              g.name LIKE concat('%', #{keyword}, '%')
+              OR g.description LIKE concat('%', #{keyword}, '%')
+              OR CAST(g.id AS TEXT) LIKE concat('%', #{keyword}, '%')
+          )
+        </if>
+        GROUP BY
+            g.id,
+            g.name,
+            g.avatar_url,
+            g.description,
+            g.max_members,
+            g.join_requires_approval,
+            mine.id,
+            jr.status
+        ORDER BY g.create_time DESC
+    </select>
+
     <!-- 更新 -->
     <update id="updateById">
         UPDATE chat_group
@@ -48,6 +109,8 @@
             <if test="name != null">name = #{name},</if>
             <if test="avatarUrl != null">avatar_url = #{avatarUrl},</if>
             <if test="description != null">description = #{description},</if>
+            <if test="isPublic != null">is_public = #{isPublic},</if>
+            <if test="joinRequiresApproval != null">join_requires_approval = #{joinRequiresApproval},</if>
             update_time = CURRENT_TIMESTAMP
         </set>
         WHERE id = #{id}
