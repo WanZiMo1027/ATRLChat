@@ -2,6 +2,7 @@ package com.yuntian.chat_app.mapper.userMapper;
 
 
 import com.yuntian.chat_app.entity.Character;
+import com.yuntian.chat_app.vo.CharacterSquareDetailVo;
 import com.yuntian.chat_app.vo.CharacterSquareItemVo;
 import org.apache.ibatis.annotations.*;
 
@@ -93,6 +94,9 @@ public interface CharacterMapper {
 
     List<CharacterSquareItemVo> selectSquareTop(@Param("userId") Long userId,
                                                 @Param("limit") Integer limit);
+
+    CharacterSquareDetailVo selectSquareDetail(@Param("id") Long id,
+                                               @Param("userId") Long userId);
 
     Long countPublicCharacters();
 

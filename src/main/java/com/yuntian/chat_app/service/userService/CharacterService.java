@@ -3,6 +3,7 @@ package com.yuntian.chat_app.service.userService;
 
 import com.yuntian.chat_app.entity.Character;
 import com.yuntian.chat_app.result.PageResult;
+import com.yuntian.chat_app.vo.CharacterSquareDetailVo;
 import com.yuntian.chat_app.vo.CharacterSquareOverviewVo;
 import com.yuntian.chat_app.vo.CharacterTagVo;
 import org.springframework.stereotype.Service;
@@ -91,6 +92,8 @@ public interface CharacterService {
      * @return 角色分页结果
      */
     PageResult getCharacterSquarePage(Integer page, Integer pageSize, String keyword, List<Long> tagIds, String tagKeyword, String tab);
+
+    CharacterSquareDetailVo getCharacterSquareDetail(Long id);
 
      /**
      * 获取公开角色列表（总览）

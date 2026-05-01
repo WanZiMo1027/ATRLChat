@@ -17,6 +17,7 @@ import com.yuntian.chat_app.result.PageResult;
 import com.yuntian.chat_app.service.userService.CharacterService;
 import com.yuntian.chat_app.service.userService.FollowService;
 import com.yuntian.chat_app.vo.CharacterFollowVo;
+import com.yuntian.chat_app.vo.CharacterSquareDetailVo;
 import com.yuntian.chat_app.vo.CharacterSquareItemVo;
 import com.yuntian.chat_app.vo.CharacterSquareOverviewVo;
 import com.yuntian.chat_app.vo.CharacterTagVo;
@@ -322,6 +323,15 @@ public class CharacterServiceImpl implements CharacterService {
         PageResult result = new PageResult(pageInfo.getTotal(), items);
         stringRedisTemplate.opsForValue().set(pageCacheKey, JSONUtil.toJsonStr(result), OVERVIEW_CACHE_TTL_MINUTES, TimeUnit.MINUTES);
         return result;
+    }
+
+    @Override
+    public CharacterSquareDetailVo getCharacterSquareDetail(Long id) {
+        if (id == null || id <= 0) {
+            return null;
+        }
+        Long currentUserId = BaseContext.getCurrentId();
+        return characterMapper.selectSquareDetail(id, currentUserId);
     }
 
     @Override

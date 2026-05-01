@@ -5,6 +5,7 @@ import com.yuntian.chat_app.entity.UserFollowCharacter;
 import com.yuntian.chat_app.result.Result;
 import com.yuntian.chat_app.service.userService.FollowService;
 import com.yuntian.chat_app.vo.CharacterFollowVo;
+import com.yuntian.chat_app.vo.FollowedCharacterDetailVo;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
@@ -61,6 +62,16 @@ public class FollowController {
         Long userId = BaseContext.getCurrentId();
         List<CharacterFollowVo> followList = followService.getFollowList(userId);
         return Result.success(followList);
+    }
+
+    @GetMapping("/detail/{id}")
+    @Operation(summary = "查询已关注角色档案", description = "查询当前用户已关注角色的弹窗档案数据")
+    public Result<FollowedCharacterDetailVo> getFollowedCharacterDetail(@PathVariable Long id) {
+        FollowedCharacterDetailVo detail = followService.getFollowedCharacterDetail(id);
+        if (detail == null) {
+            return Result.error("角色不存在或未关注");
+        }
+        return Result.success(detail);
     }
 
     /**

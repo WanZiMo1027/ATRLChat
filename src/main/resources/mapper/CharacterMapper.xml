@@ -27,6 +27,15 @@
         <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
     </resultMap>
 
+    <resultMap id="SquareDetailResultMap" type="com.yuntian.chat_app.vo.CharacterSquareDetailVo">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="name" property="name" jdbcType="VARCHAR"/>
+        <result column="image" property="image" jdbcType="VARCHAR"/>
+        <result column="intro" property="intro" jdbcType="LONGVARCHAR"/>
+        <result column="follow_count" property="followCount" jdbcType="INTEGER"/>
+        <result column="is_followed" property="isFollowed" jdbcType="BOOLEAN"/>
+    </resultMap>
+
     <sql id="SquareBaseSelect">
         SELECT
             c.id,
@@ -189,6 +198,34 @@
           AND c.is_deleted = 0
         ORDER BY follow_count DESC, c.create_time DESC
         LIMIT #{limit}
+    </select>
+
+    <select id="selectSquareDetail" resultMap="SquareDetailResultMap">
+        SELECT
+            c.id,
+            c.name,
+            c.image,
+            c.background AS intro,
+            COALESCE(fc.follow_count, 0) AS follow_count,
+            CASE WHEN uf.follow_id IS NULL THEN FALSE ELSE TRUE END AS is_followed
+        FROM app_character c
+        LEFT JOIN (
+            SELECT character_id, COUNT(*) AS follow_count
+            FROM user_follow_character
+            WHERE status = 1
+            GROUP BY character_id
+        ) fc ON fc.character_id = c.id
+        LEFT JOIN user_follow_character uf ON uf.character_id = c.id
+            AND uf.status = 1
+            <if test="userId != null">
+                AND uf.user_id = #{userId}
+            </if>
+            <if test="userId == null">
+                AND 1 = 0
+            </if>
+        WHERE c.id = #{id}
+          AND c.is_public = 1
+          AND c.is_deleted = 0
     </select>
 
     <select id="countPublicCharacters" resultType="java.lang.Long">

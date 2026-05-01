@@ -8,6 +8,7 @@ import com.yuntian.chat_app.mapper.userMapper.UserFollowCharacterMapper;
 import com.yuntian.chat_app.service.userService.FollowService;
 import com.yuntian.chat_app.utils.SnowflakeIdGenerator;
 import com.yuntian.chat_app.vo.CharacterFollowVo;
+import com.yuntian.chat_app.vo.FollowedCharacterDetailVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -126,6 +127,18 @@ public class FollowServiceImpl implements FollowService {
         String followListJsonCache = JSONUtil.toJsonStr(followList);
         stringRedisTemplate.opsForValue().set(FOLLOW_LIST_KEY + userId, followListJsonCache, CACHE_TTL_DAYS, TimeUnit.DAYS);
         return followList;
+    }
+
+    @Override
+    public FollowedCharacterDetailVo getFollowedCharacterDetail(Long characterId) {
+        if (characterId == null || characterId <= 0) {
+            return null;
+        }
+        Long userId = BaseContext.getCurrentId();
+        if (userId == null) {
+            return null;
+        }
+        return userFollowCharacterMapper.selectFollowedCharacterDetail(userId, characterId);
     }
 
     /**

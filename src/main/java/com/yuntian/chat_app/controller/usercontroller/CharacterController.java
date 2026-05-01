@@ -5,6 +5,7 @@ import com.yuntian.chat_app.result.PageResult;
 import com.yuntian.chat_app.result.Result;
 import com.yuntian.chat_app.service.userService.CharacterService;
 import com.yuntian.chat_app.service.userService.FollowService;
+import com.yuntian.chat_app.vo.CharacterSquareDetailVo;
 import com.yuntian.chat_app.vo.CharacterSquareOverviewVo;
 import com.yuntian.chat_app.vo.CharacterTagVo;
 import io.swagger.v3.oas.annotations.Operation;
@@ -120,6 +121,16 @@ public class CharacterController {
     @Operation(summary = "公开角色列表总览", description = "获取公开角色列表总览，包含角色数量、热门标签、排名角色块")
     public Result<CharacterSquareOverviewVo> getCharacterSquareOverview() {
         return Result.success(characterService.getCharacterSquareOverview());
+    }
+
+    @GetMapping("/square/detail/{id}")
+    @Operation(summary = "Character square detail", description = "Get minimal character detail for square card modal")
+    public Result<CharacterSquareDetailVo> getCharacterSquareDetail(@PathVariable Long id) {
+        CharacterSquareDetailVo detail = characterService.getCharacterSquareDetail(id);
+        if (detail == null) {
+            return Result.error("角色不存在");
+        }
+        return Result.success(detail);
     }
 
     @GetMapping("/tags")

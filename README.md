@@ -141,7 +141,15 @@ macOS / Linux:
 - `POST /character/update`
 - `GET /character/search`
 - `GET /character/square`
+- `GET /character/square/detail/{id}`
 - `GET /character/{id}`
+
+关注相关：
+
+- `POST /user/follow/follow`
+- `GET /user/follow/list`
+- `GET /user/follow/detail/{id}`
+- `GET /user/follow/rank`
 
 AI 对话：
 
