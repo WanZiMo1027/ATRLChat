@@ -2,6 +2,7 @@ package com.yuntian.chat_app.mapper.userMapper;
 
 import com.yuntian.chat_app.entity.UserFollowCharacter;
 import com.yuntian.chat_app.vo.CharacterFollowVo;
+import com.yuntian.chat_app.vo.FollowedCharacterDetailVo;
 import org.apache.ibatis.annotations.*;
 
 import java.time.LocalDateTime;
@@ -46,6 +47,22 @@ public interface UserFollowCharacterMapper {
      */
     @Select("select count(*) from user_follow_character where character_id=#{id} and status=1")
     Integer selectFollowCount(Long id);
+
+    @Select("""
+            select c.id,
+                   c.name,
+                   c.image,
+                   c.background as intro,
+                   true as is_followed
+            from user_follow_character u
+            join app_character c on u.character_id = c.id
+            where u.user_id = #{userId}
+              and u.character_id = #{characterId}
+              and u.status = 1
+              and c.is_deleted = 0
+            """)
+    FollowedCharacterDetailVo selectFollowedCharacterDetail(@Param("userId") Long userId,
+                                                            @Param("characterId") Long characterId);
 
     /**
      * 查询关注某个角色的所有用户ID
