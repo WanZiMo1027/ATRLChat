@@ -195,6 +195,8 @@ AI 对话：
 其中：
 
 - 主对话模型默认使用 DashScope 兼容 OpenAI 协议接口
+- 私聊使用 `src/main/resources/system.txt` 作为角色系统提示词
+- 群聊使用 `src/main/resources/group-system.txt` 作为角色系统提示词，被 `@AI` 触发时会以 `用户名: 消息内容` 的形式传给模型，便于 AI 区分不同群成员
 - 向量检索默认走 PostgreSQL + pgvector
 - Redis 相关依赖已接入，项目中也包含聊天记忆存储实现
 

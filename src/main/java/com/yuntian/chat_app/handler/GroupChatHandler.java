@@ -127,11 +127,13 @@ public class GroupChatHandler extends SimpleChannelInboundHandler<TextWebSocketF
                 // 3. 清理消息内容
                 String cleanMessage = userMsg.getContent()
                         .replaceAll("@(AI|ai)", "").trim();
+                String senderName;
                 if (username != null && !username.isBlank()) {
-                    cleanMessage = username + ": " + cleanMessage;
+                    senderName = username;
                 } else {
-                    cleanMessage = "user-" + userMsg.getUserId() + ": " + cleanMessage;
+                    senderName = "user-" + userMsg.getUserId();
                 }
+                cleanMessage = senderName + ": " + cleanMessage;
 
                 MonitorContext monitorContext = MonitorContext.builder()
                         .userId(String.valueOf(userMsg.getUserId()))
@@ -141,9 +143,10 @@ public class GroupChatHandler extends SimpleChannelInboundHandler<TextWebSocketF
                 MonitorContextHolder.setContext(monitorContext);
 
                 // 4. 调用 AI 服务
-                String aiResponse = consultantService.chat(
+                String aiResponse = consultantService.groupChat(
                         memoryId,
                         cleanMessage,
+                        senderName,
                         character.getName(),
                         character.getAppearance(),
                         character.getBackground(),
