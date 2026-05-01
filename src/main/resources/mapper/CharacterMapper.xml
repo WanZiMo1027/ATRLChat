@@ -136,6 +136,15 @@
         FROM app_character
         WHERE id = #{id} AND is_deleted = 0
     </select>
+    <select id="selectByIds" resultMap="BaseResultMap">
+        SELECT id, name, image
+        FROM app_character
+        WHERE is_deleted = 0
+          AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
     <!-- 获取所有角色列表（公开模型） -->
     <select id="selectAll" resultType="com.yuntian.chat_app.entity.Character">
         SELECT id, name, image, appearance, background, personality, classic_lines

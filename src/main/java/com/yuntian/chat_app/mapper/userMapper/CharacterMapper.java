@@ -53,6 +53,8 @@ public interface CharacterMapper {
      */
     Character selectById(@Param("id") Long id);
 
+    List<Character> selectByIds(@Param("ids") List<Long> ids);
+
     /**
      * 检索角色
      *

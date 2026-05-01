@@ -9,6 +9,8 @@ import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Mapper
 public interface UserMapper {
 
@@ -30,6 +32,8 @@ public interface UserMapper {
      */
     @Select("select * from app_user where id = #{id}")
     User selectById(Long id);
+
+    List<User> selectByIds(@Param("ids") List<Long> ids);
 
     int update(User user);
 
